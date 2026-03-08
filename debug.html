@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>代理与 API 诊断</title>
+    <style>
+        * { box-sizing: border-box; }
+        body {
+            font-family: ui-sans-serif, system-ui, sans-serif;
+            max-width: 720px;
+            margin: 0 auto;
+            padding: 20px;
+            background: #1a1a2e;
+            color: #e4e4e7;
+            line-height: 1.5;
+        }
+        h1 { font-size: 1.25rem; margin-bottom: 8px; }
+        .meta { color: #a1a1aa; font-size: 0.9rem; margin-bottom: 24px; }
+        .test {
+            background: #27272a;
+            border-radius: 8px;
+            padding: 12px 16px;
+            margin-bottom: 12px;
+            border-left: 4px solid #3f3f46;
+        }
+        .test.ok { border-left-color: #22c55e; }
+        .test.fail { border-left-color: #ef4444; }
+        .test.pending { border-left-color: #eab308; }
+        .test h3 { margin: 0 0 6px; font-size: 0.95rem; }
+        .test .url { font-size: 0.8rem; color: #71717a; word-break: break-all; margin-bottom: 6px; }
+        .test .body { font-size: 0.85rem; white-space: pre-wrap; word-break: break-all; max-height: 120px; overflow-y: auto; }
+        .test .err { color: #f87171; }
+        button {
+            background: #3b82f6;
+            color: #fff;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 8px;
+            font-size: 1rem;
+            cursor: pointer;
+            margin-bottom: 20px;
+        }
+        button:hover { background: #2563eb; }
+        .summary { margin-top: 20px; padding: 16px; background: #18181b; border-radius: 8px; font-size: 0.9rem; }
+        .summary h3 { margin: 0 0 8px; }
+    </style>
+</head>
+<body>
+    <h1>🔧 代理与 API 诊断</h1>
+    <p class="meta">用于排查天气、导航「加载失败 / 起点或终点解析失败」等问题。</p>
+    <button type="button" id="runBtn">运行诊断</button>
+    <div id="results"></div>
+    <div id="summary" class="summary" style="display:none;"></div>
+
+    <script>
+        const API_BASE = window.location.protocol === 'file:' ? 'http://localhost:3001' : '';
+
+        const tests = [
+            {
+                id: 'env',
+                name: '1. 页面环境',
+                run: async () => {
+                    const protocol = window.location.protocol;
+                    const origin = window.location.origin;
+                    const useProxy = protocol === 'file:';
+                    return {
+                        ok: true,
+                        url: '—',
+                        body: `协议: ${protocol}\n来源: ${origin}\nAPI_BASE: ${API_BASE || '(同源)'}\n${useProxy ? '⚠️ 当前为 file:// 打开，将请求 localhost:3001' : '✅ 当前通过同源访问，无需跨域'}`,
+                    };
+                },
+            },
+            {
+                id: 'config',
+                name: '2. 代理连通性（/api/config）',
+                run: async () => {
+                    const url = API_BASE + '/api/config';
+                    try {
+                        const res = await fetch(url);
+                        const text = await res.text();
+                        let data;
+                        try { data = JSON.parse(text); } catch (_) { data = text; }
+                        const body = typeof data === 'object' ? JSON.stringify(data, null, 2) : String(data);
+                        return {
+                            ok: res.ok,
+                            status: res.status,
+                            url,
+                            body: body || '(空)',
+                        };
+                    } catch (e) {
+                        return { ok: false, url, err: e.message, body: '请求失败，通常表示：代理未启动或端口不是 3001。请执行 cd server && npm start' };
+                    }
+                },
+            },
+            {
+                id: 'weather',
+                name: '3. 天气接口（/api/amap-weather）',
+                run: async () => {
+                    const url = API_BASE + '/api/amap-weather?city=天津';
+                    try {
+                        const res = await fetch(url);
+                        const text = await res.text();
+                        let data;
+                        try { data = JSON.parse(text); } catch (_) { data = text; }
+                        const body = typeof data === 'object' ? JSON.stringify(data, null, 2) : String(text);
+                        const ok = res.ok && (data?.ok === true);
+                        return { ok, status: res.status, url, body: body.slice(0, 800) };
+                    } catch (e) {
+                        return { ok: false, url, err: e.message, body: '请求失败：' + e.message };
+                    }
+                },
+            },
+            {
+                id: 'geocode_start',
+                name: '4. 地理编码·起点（南开大学）',
+                run: async () => {
+                    const url = API_BASE + '/api/geocode?address=' + encodeURIComponent('南开大学') + '&city=天津';
+                    try {
+                        const res = await fetch(url);
+                        const text = await res.text();
+                        let data;
+                        try { data = JSON.parse(text); } catch (_) { data = text; }
+                        const body = typeof data === 'object' ? JSON.stringify(data, null, 2) : String(text);
+                        const ok = res.ok && data?.ok === true && data?.locationArr?.length >= 2;
+                        return { ok, status: res.status, url, body: body.slice(0, 600) };
+                    } catch (e) {
+                        return { ok: false, url, err: e.message, body: '请求失败：' + e.message };
+                    }
+                },
+            },
+            {
+                id: 'geocode_end',
+                name: '5. 地理编码·终点（天津奥林匹克中心）',
+                run: async () => {
+                    const url = API_BASE + '/api/geocode?address=' + encodeURIComponent('天津奥林匹克中心') + '&city=天津';
+                    try {
+                        const res = await fetch(url);
+                        const text = await res.text();
+                        let data;
+                        try { data = JSON.parse(text); } catch (_) { data = text; }
+                        const body = typeof data === 'object' ? JSON.stringify(data, null, 2) : String(text);
+                        const ok = res.ok && data?.ok === true && data?.locationArr?.length >= 2;
+                        return { ok, status: res.status, url, body: body.slice(0, 600) };
+                    } catch (e) {
+                        return { ok: false, url, err: e.message, body: '请求失败：' + e.message };
+                    }
+                },
+            },
+            {
+                id: 'regeo',
+                name: '6. 逆地理编码（经纬度 → 地址）',
+                run: async () => {
+                    const url = API_BASE + '/api/regeo?location=117.1554,39.1022';
+                    try {
+                        const res = await fetch(url);
+                        const text = await res.text();
+                        let data;
+                        try { data = JSON.parse(text); } catch (_) { data = text; }
+                        const body = typeof data === 'object' ? JSON.stringify(data, null, 2) : String(text);
+                        const ok = res.ok && data?.ok === true && data?.address;
+                        return { ok, status: res.status, url, body: body.slice(0, 600) };
+                    } catch (e) {
+                        return { ok: false, url, err: e.message, body: '请求失败：' + e.message };
+                    }
+                },
+            },
+        ];
+
+        function el(tag, attrs, children) {
+            const e = document.createElement(tag);
+            if (attrs) Object.assign(e, attrs);
+            if (typeof children === 'string') e.textContent = children;
+            else if (children) children.forEach(c => c && e.appendChild(c));
+            return e;
+        }
+
+        document.getElementById('runBtn').onclick = async () => {
+            const container = document.getElementById('results');
+            const summaryEl = document.getElementById('summary');
+            container.innerHTML = '';
+            summaryEl.style.display = 'none';
+
+            const outcomes = [];
+            for (const t of tests) {
+                const div = el('div', { className: 'test pending' });
+                div.innerHTML = `<h3>${t.name}</h3><div class="url">${t.url}</div><div class="body">检测中…</div>`;
+                container.appendChild(div);
+
+                let result;
+                try {
+                    result = await t.run();
+                } catch (e) {
+                    result = { ok: false, err: e.message, body: String(e) };
+                }
+                outcomes.push({ id: t.id, name: t.name, ...result });
+
+                const body = result.err ? `<span class="err">${result.err}</span>\n${result.body || ''}` : (result.body || '');
+                div.className = 'test ' + (result.ok ? 'ok' : 'fail');
+                div.querySelector('.body').textContent = (result.status ? `HTTP ${result.status}\n` : '') + body;
+            }
+
+            const failed = outcomes.filter(o => !o.ok);
+            summaryEl.style.display = 'block';
+            if (failed.length === 0) {
+                summaryEl.innerHTML = '<h3>✅ 全部通过</h3><p>代理与高德接口均正常，主页面天气和导航应可用。若主页面仍异常，请通过 http://localhost:3001 打开 index.html 再试。</p>';
+            } else {
+                summaryEl.innerHTML =
+                    '<h3>❌ 诊断结论</h3>' +
+                    '<p><strong>失败项：</strong>' + failed.map(f => f.name).join('、') + '</p>' +
+                    '<p><strong>建议：</strong></p><ul>' +
+                    (outcomes.find(o => o.id === 'config' && !o.ok)
+                        ? '<li>「代理连通性」失败：请先在终端执行 <code>cd server && npm start</code>，保持运行后再刷新本页重测。</li>'
+                        : '') +
+                    (outcomes.find(o => o.id === 'env')?.body?.includes('file://')
+                        ? '<li>当前为 file:// 打开：请改为在浏览器访问 <a href="http://localhost:3001/debug.html" target="_blank">http://localhost:3001/debug.html</a>（需先启动代理）。</li>'
+                        : '') +
+                    (outcomes.find(o => (o.id === 'weather' || o.id === 'geocode_start' || o.id === 'geocode_end' || o.id === 'regeo') && !o.ok)
+                        ? '<li>天气/地理接口失败：若代理已通，多为 <code>server/.env</code> 中 AMAP_KEY 未配置、错误或高德控制台未开通对应服务（天气、地理编码、逆地理编码）。</li>'
+                        : '') +
+                    '</ul>';
+            }
+        };
+    </script>
+</body>
+</html>

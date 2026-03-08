@@ -1,0 +1,1430 @@
+
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>演唱会小助手 · 南门东开</title>
+    <!-- 字体 & 图标库 -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,400..800;1,14..32,400..800&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" integrity="sha512-SnH5WK+bZxgPHs44uWix+LLJAJ9/2PkPKZ5QiAj6Ta86w+fsb2TkR4j8R9Jx8i8D4Q8Vf4Yk8xg0Q4x7rH6g3A==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+    <!-- 高德地图 JSLoader (后续动态加载) -->
+    <style>
+        :root {
+            --bg1: #070b25;
+            --bg2: #1b2e6d;
+            --bg3: #3b2a86;
+            --glass: rgba(255, 255, 255, 0.08);
+            --glass-strong: rgba(255, 255, 255, 0.12);
+            --text-main: #1e1b2e;
+            --text-soft: #4a4560;
+            --text-main-on-dark: #eef1ff;
+            --text-soft-on-dark: #b8bfdc;
+            --accent1: #7c3aed;
+            --accent2: #22d3ee;
+            --accent3: #6366f1;
+            --danger: #fb7185;
+            --success: #4ade80;
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        html, body {
+            margin: 0;
+            height: 100%;
+            font-family: "Inter", -apple-system, BlinkMacSystemFont, sans-serif;
+            color: var(--text-main);
+            background: url('04-2.svg') center center / cover no-repeat fixed;
+            background-color: var(--bg1);
+            overflow: hidden;
+        }
+
+        body::before, body::after {
+            content: "";
+            position: fixed;
+            width: 38vmax;
+            height: 38vmax;
+            border-radius: 50%;
+            filter: blur(68px);
+            opacity: 0.45;
+            pointer-events: none;
+            z-index: 0;
+            animation: glowFloat 16s ease-in-out infinite alternate;
+        }
+        body::before {
+            top: -10vmax;
+            left: -8vmax;
+            background: radial-gradient(circle, rgba(139, 92, 246, 0.8), transparent 70%);
+        }
+        body::after {
+            right: -10vmax;
+            bottom: -12vmax;
+            background: radial-gradient(circle, rgba(6, 182, 212, 0.75), transparent 70%);
+            animation-delay: 3s;
+        }
+
+        @keyframes glowFloat {
+            from { transform: translate(0, 0) scale(1); }
+            to { transform: translate(3vmax, -2vmax) scale(1.08); }
+        }
+
+        .app-shell {
+            position: relative;
+            z-index: 10;
+            height: 100%;
+            width: 100%;
+            display: flex;
+            align-items: stretch;
+            justify-content: center;
+            gap: 20px;
+            padding: 20px 20px 10px 20px;
+        }
+
+        /* ========= 左侧聊天卡片 (原框架风格，深色块上保留浅色字) ========= */
+        .chat-card {
+            width: min(100%, 440px);
+            flex-shrink: 0;
+            align-self: stretch;
+            height: min(calc(100vh - 30px), 820px);
+            min-height: 0;
+            border-radius: 28px;
+            border: 1px solid rgba(255, 255, 255, 0.18);
+            background: linear-gradient(130deg, rgba(255, 255, 255, 0.14), rgba(255, 255, 255, 0.04));
+            backdrop-filter: blur(15px);
+            -webkit-backdrop-filter: blur(15px);
+            box-shadow: 0 28px 60px rgba(3, 5, 18, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.26);
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            color: var(--text-main-on-dark);
+        }
+        .chat-card .status { color: var(--text-soft-on-dark); }
+
+        .chat-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 18px 20px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.12);
+            background: rgba(7, 12, 27, 0.35);
+        }
+
+        .brand {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+        .avatar-wrap {
+            width: 44px;
+            height: 44px;
+            border-radius: 14px;
+            overflow: hidden;
+            flex-shrink: 0;
+            box-shadow: 0 0 22px rgba(139, 92, 246, 0.4);
+            animation: assistantPulse 3s ease-in-out infinite;
+        }
+        .avatar-wrap img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            display: block;
+        }
+        .title { font-size: 1rem; font-weight: 800; margin: 0 0 4px; text-shadow: 0 1px 2px rgba(0,0,0,0.08); }
+        .status {
+            margin: 0; color: var(--text-soft); font-size: 0.82rem;
+            display: flex; align-items: center; gap: 8px;
+        }
+        .status-dot {
+            width: 8px; height: 8px; border-radius: 50%;
+            background: var(--success); box-shadow: 0 0 10px var(--success);
+        }
+        .ghost-btn {
+            border: 1px solid rgba(255,255,255,0.18); background: rgba(255,255,255,0.1);
+            color: var(--text-main); padding: 8px 12px; border-radius: 12px;
+            font-size: 0.82rem; font-weight: 600; cursor: pointer;
+            transition: all 0.2s ease;
+        }
+        .ghost-btn:hover { border-color: rgba(255,255,255,0.28); transform: translateY(-1px); }
+
+        .api-section {
+            padding: 12px 20px; border-bottom: 1px solid rgba(255,255,255,0.1);
+            background: rgba(9,13,33,0.3); display: none; /* 默认隐藏，可通过JS显示 */
+        }
+
+        .messages {
+            flex: 1; overflow-y: auto; padding: 20px;
+            display: flex; flex-direction: column; gap: 12px;
+            scrollbar-width: thin; scrollbar-color: rgba(255,255,255,0.35) transparent;
+        }
+        .messages::-webkit-scrollbar { width: 8px; }
+        .messages::-webkit-scrollbar-thumb { border-radius: 8px; background: rgba(255,255,255,0.25); }
+
+        .msg-row { display: flex; max-width: 100%; animation: fadeInUp 0.55s cubic-bezier(0.25, 0.46, 0.45, 0.94) both; }
+        .msg-row.assistant { justify-content: flex-start; }
+        .msg-row.user { justify-content: flex-end; }
+        .msg-bubble {
+            max-width: 82%; padding: 12px 14px; line-height: 1.55; border-radius: 16px;
+            border: 1px solid rgba(255,255,255,0.2); word-break: break-word;
+            transition: box-shadow 0.5s ease, filter 0.5s ease;
+        }
+        .assistant .msg-bubble {
+            background: linear-gradient(rgba(8,12,30,0.9), rgba(8,12,30,0.9)) padding-box,
+                        linear-gradient(135deg, rgba(139,92,246,0.9), rgba(6,182,212,0.9)) border-box;
+            border: 1px solid transparent; box-shadow: 0 0 20px rgba(139,92,246,0.2);
+        }
+        .user .msg-bubble {
+            background: linear-gradient(rgba(13,18,39,0.9), rgba(13,18,39,0.9)) padding-box,
+                        linear-gradient(135deg, rgba(6,182,212,0.95), rgba(236,72,153,0.95)) border-box;
+            border: 1px solid transparent; box-shadow: 0 0 20px rgba(6,182,212,0.18);
+        }
+
+        .typing { display: inline-flex; align-items: center; gap: 5px; }
+        .typing span {
+            width: 6px; height: 6px; border-radius: 50%; background: #cdd3ff;
+            display: inline-block; animation: dotBounce 1s infinite ease-in-out;
+        }
+        .typing span:nth-child(2) { animation-delay: 0.14s; }
+        .typing span:nth-child(3) { animation-delay: 0.28s; }
+
+        .msg-bubble.streaming {
+            animation: streamingPulse 2.5s ease-in-out infinite, streamingShine 3s ease-in-out infinite;
+        }
+        .msg-bubble .stream-content { display: inline; }
+        .typing-cursor {
+            display: inline-block;
+            margin-left: 4px;
+            vertical-align: text-bottom;
+        }
+        .typing-cursor img {
+            display: block;
+            height: 1.2em;
+            width: auto;
+            min-width: 14px;
+            max-height: 26px;
+            object-fit: contain;
+            vertical-align: text-bottom;
+            animation: cursorGlow 1.6s ease-in-out infinite;
+        }
+
+        .quick-panel {
+            border-top: 1px solid rgba(255,255,255,0.1); padding: 12px 16px;
+            display: flex; flex-wrap: wrap; gap: 8px;
+            background: rgba(10,12,28,0.34);
+        }
+        .quick-btn {
+            border: 1px solid rgba(255,255,255,0.18); background: rgba(255,255,255,0.08);
+            color: var(--text-main); border-radius: 999px; padding: 8px 12px;
+            font-size: 0.78rem; cursor: pointer; transition: all 0.2s ease;
+        }
+        .quick-btn:hover { border-color: rgba(6,182,212,0.65); box-shadow: 0 0 18px rgba(6,182,212,0.24); }
+
+        .composer {
+            border-top: 1px solid rgba(255,255,255,0.12); padding: 14px 16px 16px;
+            display: flex; gap: 10px; background: rgba(7,10,24,0.34);
+        }
+        .input {
+            flex: 1; border: 1px solid rgba(255,255,255,0.2); border-radius: 14px;
+            background: var(--glass); color: var(--text-main); padding: 12px 14px;
+            outline: none; transition: border-color 0.2s ease;
+        }
+        .input:focus { border-color: rgba(139,92,246,0.75); box-shadow: 0 0 0 3px rgba(139,92,246,0.18); }
+        .send-btn {
+            width: 52px; height: 52px; border: 1px solid rgba(255,255,255,0.32); border-radius: 50%;
+            cursor: pointer; position: relative; isolation: isolate; padding: 0;
+            display: flex; align-items: center; justify-content: center; overflow: hidden;
+            background: radial-gradient(circle at 28% 26%, rgba(255,255,255,0.4), transparent 52%),
+                        linear-gradient(140deg, #8b5cf6 0%, #7c3aed 42%, #06b6d4 100%);
+            box-shadow: 0 10px 24px rgba(31,18,63,0.45), 0 0 0 1px rgba(255,255,255,0.08) inset;
+            transition: transform 0.22s ease, box-shadow 0.22s ease, filter 0.22s ease;
+        }
+        .send-btn::before {
+            content: "";
+            position: absolute; inset: 5px; border-radius: 50%;
+            background: linear-gradient(160deg, rgba(255,255,255,0.3), rgba(255,255,255,0));
+            pointer-events: none; z-index: -1;
+        }
+        .send-btn::after {
+            content: "";
+            position: absolute; inset: -1px; border-radius: 50%;
+            border: 1px solid rgba(255,255,255,0.26);
+            box-shadow: 0 0 18px rgba(6,182,212,0.22);
+            opacity: 0; transform: scale(0.88);
+            transition: opacity 0.22s ease, transform 0.22s ease;
+            pointer-events: none;
+        }
+        .send-btn img {
+            width: 42px;
+            height: 42px;
+            object-fit: contain;
+            object-position: center;
+            transform: rotate(-8deg) translateX(1px) translateY(-1px);
+            filter: drop-shadow(0 1px 1px rgba(0,0,0,0.25));
+            transition: transform 0.22s ease, filter 0.22s ease;
+        }
+        .send-btn:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 14px 30px rgba(78,49,146,0.55), 0 0 24px rgba(6,182,212,0.3);
+        }
+        .send-btn:hover:not(:disabled)::after { opacity: 1; transform: scale(1); }
+        .send-btn:hover:not(:disabled) img { transform: rotate(-6deg) translateX(3px) translateY(-2px); animation: sendTakeoff 1s ease-in-out infinite; }
+        .send-btn:active:not(:disabled) { transform: translateY(0) scale(0.96); }
+        .send-btn:focus-visible {
+            outline: none;
+            box-shadow: 0 0 0 3px rgba(6,182,212,0.32), 0 10px 24px rgba(31,18,63,0.45);
+        }
+        .send-btn:disabled {
+            cursor: not-allowed;
+            opacity: 0.58;
+            filter: grayscale(0.25);
+            transform: none;
+            box-shadow: 0 8px 18px rgba(31,18,63,0.26);
+        }
+
+        @keyframes fadeInUp {
+            from { opacity: 0; transform: translateY(12px) scale(0.98); }
+            to { opacity: 1; transform: translateY(0) scale(1); }
+        }
+        @keyframes assistantPulse { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-2px); } }
+        @keyframes dotBounce { 0%,80%,100% { transform: translateY(0); opacity:0.75; } 40% { transform: translateY(-4px); opacity:1; } }
+        @keyframes pulseGlow { 0%,100% { box-shadow: 0 10px 24px rgba(139,92,246,0.35); } 50% { box-shadow: 0 12px 28px rgba(236,72,153,0.58); } }
+        @keyframes sendTakeoff {
+            0%, 100% { transform: rotate(-6deg) translateX(3px) translateY(-2px); }
+            50% { transform: rotate(-4deg) translateX(5px) translateY(-4px); }
+        }
+        /* 荧光棒光标：发光闪烁 + 轻微呼吸 */
+        @keyframes cursorGlow {
+            0%, 100% {
+                filter: drop-shadow(0 0 4px rgba(160,100,220,0.5)) drop-shadow(0 0 8px rgba(255,200,50,0.25));
+                opacity: 1;
+                transform: scale(1);
+            }
+            50% {
+                filter: drop-shadow(0 0 8px rgba(160,100,220,0.85)) drop-shadow(0 0 14px rgba(255,200,50,0.5));
+                opacity: 0.95;
+                transform: scale(1.06);
+            }
+        }
+        @keyframes streamingPulse {
+            0%, 100% {
+                box-shadow: 0 0 24px rgba(139,92,246,0.25),
+                            0 0 48px rgba(139,92,246,0.08);
+            }
+            50% {
+                box-shadow: 0 0 36px rgba(139,92,246,0.4),
+                            0 0 64px rgba(6,182,212,0.15);
+            }
+        }
+        @keyframes streamingShine {
+            0%, 100% { filter: brightness(1); }
+            50% { filter: brightness(1.08); }
+        }
+
+        /* ========= 右侧新面板 ========= */
+        .right-panel {
+            flex: 1.2; min-width: 380px; max-width: 720px;
+            align-self: stretch;
+            height: min(calc(100vh - 30px), 820px);
+            min-height: 0;
+            display: flex; flex-direction: column; gap: 10px;
+            overflow-y: auto;
+            scrollbar-width: none;
+            -ms-overflow-style: none;
+        }
+        .right-panel::-webkit-scrollbar { display: none; }
+        .top-info-row,
+        .bottom-tools-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            align-items: stretch;
+        }
+        .weather-dashboard,
+        .advice-card,
+        .search-panel,
+        .food-panel {
+            background: linear-gradient(130deg, rgba(255,255,255,0.22), rgba(255,255,255,0.08));
+            backdrop-filter: blur(15px); -webkit-backdrop-filter: blur(15px);
+            border: 1px solid rgba(255,255,255,0.22);
+            border-radius: 20px;
+            box-shadow: 0 24px 52px rgba(3,5,18,0.22);
+        }
+        .weather-dashboard {
+            padding: 10px 12px;
+        }
+        .today-info {
+            display: flex; align-items: center; justify-content: space-between;
+            margin-bottom: 6px; padding-bottom: 6px;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+        }
+        .date-badge {
+            background: rgba(255,255,255,0.18); padding: 5px 10px; border-radius: 24px;
+            border: 1px solid rgba(255,255,255,0.15);
+        }
+        .date-badge .day { font-size: 1.25rem; font-weight: 700; line-height: 1; text-shadow: 0 1px 2px rgba(0,0,0,0.06); }
+        .date-badge .month { font-size: 0.8rem; color: var(--text-soft); margin-left: 2px; }
+        .weekday { font-size: 0.82rem; color: var(--text-soft); margin-top: 2px; }
+        .current-weather { display: flex; align-items: center; gap: 7px; }
+        .weather-icon-large i { font-size: 1.35rem; color: #fcd34d; filter: drop-shadow(0 0 6px #fbbf24); }
+        .weather-temp { font-size: 1.32rem; font-weight: 700; text-shadow: 0 1px 2px rgba(0,0,0,0.06); }
+        .weather-desc { font-size: 0.82rem; color: var(--text-soft); line-height: 1.3; }
+        .weather-location { font-size: 0.78rem; color: var(--text-soft); opacity: 0.9; margin-top: 1px; }
+        .weekly-forecast { display: flex; flex-direction: column; gap: 2px; }
+        .forecast-row {
+            display: flex; align-items: center; justify-content: space-between;
+            padding: 2px 0;
+            border-bottom: 1px solid rgba(255,255,255,0.04);
+        }
+        .forecast-row:last-child { border-bottom: none; }
+        .forecast-day { width: 30px; font-weight: 600; font-size: 0.84rem; }
+        .forecast-icon { width: 20px; text-align: center; color: #a78bfa; font-size: 0.86rem; }
+        .forecast-temp { width: 50px; text-align: right; font-size: 0.82rem; }
+        .forecast-desc { flex: 1; text-align: right; color: var(--text-soft); font-size: 0.8rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+        .advice-card {
+            padding: 10px 12px;
+            display: flex;
+            flex-direction: column;
+        }
+        .advice-title {
+            font-size: 0.96rem; font-weight: 600; margin-bottom: 8px;
+            display: flex; align-items: center; gap: 6px;
+            text-shadow: 0 1px 2px rgba(0,0,0,0.06);
+        }
+        .advice-title i { color: var(--accent2); font-size: 0.92rem; }
+        .advice-content {
+            background: rgba(255,255,255,0.15); border-radius: 12px; padding: 9px 10px;
+            border: 1px solid rgba(255,255,255,0.12);
+            color: var(--text-soft); line-height: 1.42; font-size: 0.86rem;
+            flex: 1;
+            overflow-y: auto;
+        }
+
+        .map-container {
+            flex: 1 0 320px; min-height: 320px; border-radius: 20px; overflow: hidden;
+            border: 1px solid rgba(255,255,255,0.18);
+            background: linear-gradient(130deg, rgba(255,255,255,0.08), rgba(255,255,255,0.02));
+            backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
+            box-shadow: 0 28px 60px rgba(3,5,18,0.4);
+            position: relative;
+        }
+        #map { width: 100%; height: 100%; min-height: 320px; display: block; }
+
+        .search-panel,
+        .food-panel {
+            padding: 12px;
+            display: flex;
+            flex-direction: column;
+        }
+        .subtool-title {
+            font-size: 0.82rem;
+            font-weight: 600;
+            margin-top: 10px;
+            margin-bottom: 7px;
+            color: var(--text-soft);
+        }
+        .tool-title {
+            font-size: 0.88rem;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            margin-bottom: 8px;
+        }
+        .tool-title i { color: #60a5fa; }
+        .nav-row { margin-bottom: 8px; }
+        .nav-row.nav-row-from { display: flex; flex-wrap: wrap; align-items: flex-end; gap: 8px; }
+        .nav-row.nav-row-from .nav-input { flex: 1; min-width: 0; }
+        .nav-label {
+            display: block; font-size: 0.76rem; color: var(--text-soft); margin-bottom: 3px;
+            text-shadow: 0 1px 2px rgba(0,0,0,0.06);
+        }
+        .nav-input {
+            width: 100%; box-sizing: border-box; padding: 8px 10px; border-radius: 10px;
+            border: 1px solid rgba(120,100,140,0.35); background: rgba(255,255,255,0.18);
+            color: var(--text-main); font-size: 0.84rem; outline: none;
+        }
+        .nav-input:focus { border-color: rgba(139,92,246,0.6); }
+        .nav-input::placeholder { color: var(--text-soft); opacity: 0.85; }
+        .nav-addr { font-size: 0.78rem; color: var(--text-soft); }
+        .nav-btns { display: flex; flex-wrap: wrap; gap: 7px; }
+        .nav-btn {
+            padding: 7px 10px; border-radius: 10px; border: 1px solid rgba(255,255,255,0.2);
+            background: rgba(139,92,246,0.25); color: var(--text-main); font-size: 0.78rem;
+            cursor: pointer; transition: all 0.2s ease;
+        }
+        .nav-btn-mini { padding: 7px 10px; font-size: 0.76rem; flex-shrink: 0; }
+        .nav-btn:hover { background: rgba(139,92,246,0.4); border-color: rgba(139,92,246,0.6); }
+        .route-btns .nav-btn { min-width: 64px; }
+        .result-panel-wrap {
+            max-height: 170px; overflow-y: auto; margin-top: 9px;
+            scrollbar-width: none; -ms-overflow-style: none;
+            background: rgba(255,255,255,0.12);
+            border: 1px solid rgba(255,255,255,0.12);
+            border-radius: 12px;
+            padding: 8px;
+        }
+        .result-panel-wrap::-webkit-scrollbar { display: none; }
+        .amap-panel { display: block; color: var(--text-main); font-size: 0.8rem; }
+        .result-panel-wrap .amap-panel-container { background: rgba(255,255,255,0.15); color: var(--text-main); }
+
+        .food-toolbar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 8px;
+            gap: 8px;
+        }
+        .food-hint {
+            font-size: 0.74rem;
+            color: var(--text-soft);
+        }
+        .food-list {
+            min-height: 220px;
+            max-height: 320px;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 7px;
+            scrollbar-width: none;
+            -ms-overflow-style: none;
+            flex: 1;
+        }
+        .food-list::-webkit-scrollbar { display: none; }
+        .food-item {
+            border: 1px solid rgba(255,255,255,0.18);
+            border-radius: 12px;
+            background: rgba(255,255,255,0.12);
+            padding: 8px;
+        }
+        .food-item-head {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            gap: 8px;
+            margin-bottom: 4px;
+        }
+        .food-name { font-size: 0.82rem; font-weight: 600; line-height: 1.35; }
+        .food-meta { font-size: 0.72rem; color: var(--text-soft); }
+        .food-addr { font-size: 0.74rem; color: var(--text-soft); line-height: 1.35; }
+        .food-route-btn {
+            border: 1px solid rgba(6,182,212,0.45);
+            background: rgba(6,182,212,0.18);
+            color: var(--text-main);
+            border-radius: 8px;
+            padding: 5px 8px;
+            font-size: 0.72rem;
+            cursor: pointer;
+        }
+        .food-route-btn:hover { background: rgba(6,182,212,0.3); }
+
+        /* 响应式 */
+        @media (max-width: 1000px) {
+            .app-shell { flex-direction: column; align-items: center; overflow-y: auto; }
+            .chat-card, .right-panel { width: 100%; max-width: 600px; height: auto; }
+            .right-panel { margin-bottom: 20px; max-width: 600px; }
+            .top-info-row,
+            .bottom-tools-row { grid-template-columns: 1fr; }
+            .map-container { min-height: 320px; }
+            #map { min-height: 320px; }
+        }
+    </style>
+</head>
+<body>
+    <main class="app-shell">
+        <!-- 左侧聊天区 (原框架核心) -->
+        <section class="chat-card" aria-label="演唱会小助手聊天窗口">
+            <header class="chat-header">
+                <div class="brand">
+                    <div class="avatar-wrap" aria-hidden="true"><img src="头像.png" alt="小助手" class="avatar-img" /></div>
+                    <div class="title-group">
+                        <h1 class="title">🎤 演唱会智多星</h1>
+                        <p class="status"><span class="status-dot" aria-hidden="true"></span><span>在线</span></p>
+                    </div>
+                </div>
+                <button id="resetBtn" class="ghost-btn" aria-label="开始新咨询">新对话</button>
+            </header>
+
+            <!-- 内置 API Key (示例key, 用户可自行替换) 采用原框架内置key变量 -->
+            <div style="display: none;" id="hiddenApiKey" data-key="sk-71231aa14faa4a319a61d4c59208f9a4"></div>
+
+            <section id="messages" class="messages" aria-live="polite"></section>
+
+            <section class="quick-panel" id="quickPanel" aria-label="常用快速选项">
+                <button class="quick-btn" data-quick="小助手你好，我想问关于演唱会的问题">演唱会求助</button>
+                <button class="quick-btn" data-quick="小助手，请帮我根据预算设计旅行计划">预算</button>
+                <button class="quick-btn" data-quick="第一次参加演唱会，有什么注意">首次参加</button>
+                <button class="quick-btn" data-quick="小助手，请帮我查一下关于我演唱会的资料">查资料</button>
+            </section>
+
+            <form id="composer" class="composer" autocomplete="off">
+                <input id="userInput" class="input" type="text" placeholder="告诉我你的年龄、音乐偏好、预算..." maxlength="500" aria-label="输入消息" />
+                <button id="sendBtn" class="send-btn" type="submit" aria-label="发送消息"><img src="paper-plane-send.png" alt="" /></button>
+            </form>
+        </section>
+
+        <!-- 右侧全新面板：天气/建议并排 + 地图 + 搜索路线 + 周边美食 -->
+        <div class="right-panel">
+            <div class="top-info-row">
+                <!-- 日期 & 高德天气卡片 -->
+                <div class="weather-dashboard" id="weatherDashboard">
+                    <div class="today-info">
+                        <div class="date-badge" id="dateDisplay">
+                            <!-- JS动态填充 -->
+                        </div>
+                        <div class="current-weather" id="currentWeather">
+                            <div class="weather-icon-large"><i class="fa-solid fa-cloud-sun" id="weatherIcon"></i></div>
+                            <div>
+                                <span class="weather-temp" id="currTemp">--°</span>
+                                <div class="weather-desc" id="currDesc">加载中...</div>
+                                <div class="weather-location" id="weatherLocation">天津 · 南开大学</div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="weekly-forecast" id="weeklyForecast">
+                        <!-- 动态生成预报 -->
+                    </div>
+                </div>
+
+                <!-- 穿搭 & 观演建议卡片 -->
+                <div class="advice-card" id="adviceCard">
+                    <div class="advice-title"><i class="fa-regular fa-lightbulb"></i> 穿搭 & 观演建议</div>
+                    <div class="advice-content" id="adviceContent">
+                        根据天气和演唱会特点，为你准备个性化提醒。
+                    </div>
+                </div>
+            </div>
+
+            <!-- 地图主区域 -->
+            <div class="map-container">
+                <div id="map"></div>
+            </div>
+
+            <div class="bottom-tools-row">
+                <!-- 搜索面板 -->
+                <div class="search-panel" id="searchPanel">
+                    <div class="tool-title"><i class="fa-solid fa-location-dot"></i> 目的地搜索</div>
+                    <div class="nav-row">
+                        <label class="nav-label">目的地</label>
+                        <input type="text" id="destInput" class="nav-input" placeholder="如：天津奥林匹克中心" value="天津奥林匹克中心" />
+                    </div>
+                    <div class="nav-row nav-row-from">
+                        <label class="nav-label">当前位置</label>
+                        <input type="text" id="currentAddrInput" class="nav-input" placeholder="南开大学" />
+                        <button type="button" id="locateBtn" class="nav-btn nav-btn-mini" aria-label="获取定位" title="获取当前位置">定位</button>
+                    </div>
+                    <div class="nav-btns">
+                        <button type="button" id="searchDestBtn" class="nav-btn" aria-label="搜索目的地"><i class="fa-solid fa-magnifying-glass"></i> 搜索</button>
+                    </div>
+                    <div class="result-panel-wrap" id="searchResultWrap" style="display:none;">
+                        <div id="placeSearchPanel" class="amap-panel"></div>
+                    </div>
+                    <div class="subtool-title">路线规划</div>
+                    <div class="nav-btns route-btns">
+                        <button type="button" id="navWalkBtn" class="nav-btn" aria-label="步行导航"><i class="fa-solid fa-person-walking"></i> 步行</button>
+                        <button type="button" id="navDriveBtn" class="nav-btn" aria-label="驾车导航"><i class="fa-solid fa-car"></i> 驾车</button>
+                        <button type="button" id="navRideBtn" class="nav-btn" aria-label="骑行导航"><i class="fa-solid fa-bicycle"></i> 骑行</button>
+                        <button type="button" id="navTransitBtn" class="nav-btn" aria-label="公交导航"><i class="fa-solid fa-bus"></i> 公交</button>
+                    </div>
+                    <div class="result-panel-wrap" id="routeResultWrap" style="display:none;">
+                        <div id="routePanel" class="amap-panel"></div>
+                    </div>
+                </div>
+
+                <div class="food-panel" id="foodPanel">
+                    <div class="tool-title"><i class="fa-solid fa-utensils"></i> 目的地周边美食</div>
+                    <div class="food-toolbar">
+                        <span id="foodHint" class="food-hint">范围：目的地附近 1500 米</span>
+                        <button type="button" id="refreshFoodBtn" class="nav-btn nav-btn-mini" aria-label="刷新周边美食">刷新</button>
+                    </div>
+                    <div id="foodList" class="food-list">
+                        <div class="nav-addr">搜索目的地后，可查看附近好吃的美食。</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- 高德地图 JS API loader (使用CDN) 及 主要逻辑 -->
+    <script src="https://webapi.amap.com/loader.js"></script>
+    <script>
+        (function() {
+            // ---------- 配置 ----------
+            // 高德地图 Key：优先从 /api/config 获取，否则使用本地默认（需通过 localhost 访问代理）
+            let AMAP_KEY = '675c1e1b25ff9f707799dad004294197';
+            let AMAP_SECURITY_JS_CODE = '';
+            // 天气图标映射（高德天气现象 → Font Awesome）
+            const WEATHER_ICON_MAP = {
+                '晴': 'fa-solid fa-sun', '多云': 'fa-solid fa-cloud-sun', '阴': 'fa-solid fa-cloud',
+                '小雨': 'fa-solid fa-cloud-rain', '中雨': 'fa-solid fa-cloud-rain', '大雨': 'fa-solid fa-cloud-showers-heavy',
+                '暴雨': 'fa-solid fa-cloud-bolt', '阵雨': 'fa-solid fa-cloud-rain', '雷阵雨': 'fa-solid fa-cloud-bolt',
+                '小雪': 'fa-solid fa-snowflake', '中雪': 'fa-solid fa-snowflake', '大雪': 'fa-solid fa-snowflake',
+                '雾': 'fa-solid fa-smog', '霾': 'fa-solid fa-smog'
+            };
+            function weatherToIcon(w) {
+                if (!w) return 'fa-solid fa-cloud-sun';
+                for (const [k, v] of Object.entries(WEATHER_ICON_MAP)) {
+                    if (w.includes(k)) return v;
+                }
+                return 'fa-solid fa-cloud-sun';
+            }
+
+            // ---------- 通用变量 ----------
+            const messagesEl = document.getElementById('messages');
+            const userInputEl = document.getElementById('userInput');
+            const sendBtnEl = document.getElementById('sendBtn');
+            const resetBtnEl = document.getElementById('resetBtn');
+            const composerEl = document.getElementById('composer');
+            const quickPanelEl = document.getElementById('quickPanel');
+            const dateDisplay = document.getElementById('dateDisplay');
+            const currTemp = document.getElementById('currTemp');
+            const currDesc = document.getElementById('currDesc');
+            const weeklyForecast = document.getElementById('weeklyForecast');
+            const adviceContent = document.getElementById('adviceContent');
+            const weatherLocationEl = document.getElementById('weatherLocation');
+            const weatherIconEl = document.getElementById('weatherIcon');
+            const foodListEl = document.getElementById('foodList');
+            const foodHintEl = document.getElementById('foodHint');
+
+            // 内置API Key (原框架自带)
+            const EMBEDDED_API_KEY = document.getElementById('hiddenApiKey')?.dataset.key || 'sk-71231aa14faa4a319a61d4c59208f9a4';
+
+            // Qwen API 配置（阿里云百炼兼容）
+            const API_ENDPOINT = 'https://dashscope.aliyuncs.com/compatible-mode/v1/chat/completions';
+            const MODEL_NAME = 'qwen3.5-35b-a3b';
+
+            /**
+             * 系统提示：市场调研结论，使模型成为特化演唱会助手
+             */
+            const SYSTEM_PROMPT =
+                '你是一个专业的演唱会小助手，基于以下市场调研数据为用户提供个性化建议：\n' +
+                '- 年龄分组偏好：\n' +
+                '  * 18-25岁：喜欢流行、嘻哈、电子音乐，倾向站位区，注重互动。\n' +
+                '  * 26-35岁：喜欢摇滚、独立音乐、流行，倾向座位区，注重音响效果。\n' +
+                '  * 36-60岁：喜欢经典摇滚、怀旧、民谣，倾向看台座位，避免拥挤。\n' +
+                '- 预算推荐：\n' +
+                '  * 低预算（<300元）：推荐看台票，性价比高。\n' +
+                '  * 中预算（300-800元）：推荐内场后排或看台前排，音效视野均衡。\n' +
+                '  * 高预算（>800元）：推荐VIP内场或前排，可能包含伴手礼。\n' +
+                '- 经验提示：\n' +
+                '  * 首次参加：建议提前1小时到场，熟悉场地。\n' +
+                '  * 资深观众：可以加入粉丝组织获取应援物。\n' +
+                '- 音乐风格与歌手示例：\n' +
+                '  * 流行：周杰伦、Taylor Swift、林俊杰\n' +
+                '  * 摇滚：五月天、Coldplay、Beyond\n' +
+                '  * 电子：Alan Walker、The Chainsmokers\n' +
+                '请根据用户提供的信息（年龄、喜欢的音乐风格、预算、经验等），结合以上数据，给出合适的演唱会推荐和提示。对话要亲切、友好，逐步收集信息，最终提供个性化建议。\n回复请尽量简洁，每条消息控制在两三句话到一小段即可，避免长篇大论。';
+
+            // 对话历史（仅 user/assistant，system 每次请求时注入）
+            let conversationHistory = [];
+            let waitingResponse = false;
+
+            /** 构建请求消息：system + 历史 */
+            function buildMessagesForApi() {
+                return [
+                    { role: 'system', content: SYSTEM_PROMPT },
+                    ...conversationHistory
+                ];
+            }
+
+            /**
+             * 流式调用 Qwen API，按 token 回调
+             * @param {{ onChunk: (s:string)=>void, onDone: (fullText:string)=>void, onError: (err:Error)=>void }} callbacks
+             */
+            async function requestAssistantReplyStream({ onChunk, onDone, onError }) {
+                const body = {
+                    model: MODEL_NAME,
+                    messages: buildMessagesForApi(),
+                    temperature: 0.7,
+                    enable_thinking: false,
+                    stream: true
+                };
+                const res = await fetch(API_ENDPOINT, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${EMBEDDED_API_KEY}`
+                    },
+                    body: JSON.stringify(body)
+                });
+                if (!res.ok) {
+                    const data = await res.json();
+                    const msg = data?.error?.message || `HTTP ${res.status}`;
+                    onError(new Error(msg));
+                    return;
+                }
+                const reader = res.body.getReader();
+                const decoder = new TextDecoder();
+                let buffer = '';
+                let fullText = '';
+                try {
+                    while (true) {
+                        const { done, value } = await reader.read();
+                        if (done) break;
+                        buffer += decoder.decode(value, { stream: true });
+                        const lines = buffer.split('\n');
+                        buffer = lines.pop() || '';
+                        for (const line of lines) {
+                            if (line.startsWith('data: ')) {
+                                const raw = line.slice(6);
+                                if (raw === '[DONE]') continue;
+                                try {
+                                    const obj = JSON.parse(raw);
+                                    const content = obj?.choices?.[0]?.delta?.content;
+                                    if (content) {
+                                        fullText += content;
+                                        onChunk(content);
+                                    }
+                                } catch (_) {}
+                            }
+                        }
+                    }
+                    onDone(fullText.trim());
+                } catch (err) {
+                    onError(err instanceof Error ? err : new Error(String(err)));
+                }
+            }
+
+            // ---------- 初始化日期 & 天气显示 (高德天气) ----------
+            function initDateWeather() {
+                const now = new Date();
+                const year = now.getFullYear();
+                const month = String(now.getMonth() + 1).padStart(2,'0');
+                const day = String(now.getDate()).padStart(2,'0');
+                const weekdays = ['周日','周一','周二','周三','周四','周五','周六'];
+                const weekday = weekdays[now.getDay()];
+                dateDisplay.innerHTML = `<span class="day">${day}</span><span class="month">${month}月</span><div class="weekday">${weekday}</div>`;
+                currTemp.innerText = '--°';
+                currDesc.innerText = '加载中...';
+                weeklyForecast.innerHTML = '';
+            }
+
+            /** 根据天气数据更新穿搭建议 */
+            function updateAdviceByWeather(temp, forecasts) {
+                if (temp == null) return;
+                let outfit = '';
+                if (temp < 15) outfit = '🧥 建议穿厚外套、毛衣，注意保暖。';
+                else if (temp < 22) outfit = '🧥 薄外套 + 长袖，早晚较凉。';
+                else outfit = '👕 短袖/薄衫，但夜晚可能降温，带一件薄外套。';
+                const hasRain = (forecasts || []).slice(0, 3).some(f =>
+                    (f.dayWeather && f.dayWeather.includes('雨')) || (f.nightWeather && f.nightWeather.includes('雨'))
+                );
+                const rainAdvice = hasRain ? '☔ 未来三天有雨，记得带伞！' : '☀️ 近期少雨，适合观演。';
+                adviceContent.innerHTML = `🎤 演唱会穿搭：${outfit}<br>📌 观演提醒：提前1-2小时到场，避免拥堵。${rainAdvice} 保持手机电量，享受音乐！`;
+            }
+
+            /** 使用高德天气：优先走代理 /api/amap-weather（稳定），失败则尝试 JS API Weather */
+            async function fetchAmapWeather(cityName, locationLabel, adcode) {
+                const city = cityName || '天津';
+                if (weatherLocationEl && locationLabel) weatherLocationEl.textContent = locationLabel;
+
+                const renderLive = (live) => {
+                    if (!live) { currTemp.innerText = '--°'; currDesc.innerText = '暂无天气'; return; }
+                    const temp = live.temperature != null ? live.temperature : '--';
+                    currTemp.innerText = temp + '°';
+                    currDesc.innerText = live.weather || '--';
+                    if (weatherIconEl) weatherIconEl.className = weatherToIcon(live.weather || '');
+                    const tempNum = Number(temp);
+                    updateAdviceByWeather(Number.isFinite(tempNum) ? tempNum : null, null);
+                };
+                const renderForecast = (list) => {
+                    if (!list || !list.length) return;
+                    const html = list.slice(0, 5).map(f => {
+                        const day = f.week || f.date || '';
+                        const tempStr = `${f.dayTemp ?? '-'}/${f.nightTemp ?? '-'}°`;
+                        const desc = f.dayWeather || f.nightWeather || '-';
+                        return `<div class="forecast-row"><span class="forecast-day">${day}</span><span class="forecast-icon"><i class="${weatherToIcon(desc)}"></i></span><span class="forecast-temp">${tempStr}</span><span class="forecast-desc">${desc}</span></div>`;
+                    }).join('');
+                    weeklyForecast.innerHTML = html;
+                    const dayTempNum = Number(list[0]?.dayTemp);
+                    updateAdviceByWeather(Number.isFinite(dayTempNum) ? dayTempNum : null, list);
+                };
+
+                try {
+                    const q = adcode ? `adcode=${encodeURIComponent(adcode)}` : `city=${encodeURIComponent(city)}`;
+                    const res = await fetch(API_BASE + `/api/amap-weather?${q}`);
+                    const data = await res.json();
+                    if (data.ok) {
+                        if (data.live) renderLive(data.live);
+                        if (data.forecasts && data.forecasts.length) renderForecast(data.forecasts);
+                        return;
+                    }
+                    currDesc.innerText = '加载失败（请通过 http://localhost:3001 打开页面并启动代理）';
+                } catch (e) {
+                    currDesc.innerText = '加载失败（请通过 http://localhost:3001 打开页面并启动代理）';
+                }
+                if (AMapLib && AMapLib.Weather) {
+                    try {
+                        const weather = new AMapLib.Weather();
+                        weather.getLive(city, (err, live) => { if (!err && live) renderLive(live); });
+                        weather.getForecast(city, (err, forecast) => {
+                            if (!err && forecast) {
+                                const list = forecast.forecasts || forecast.forecast || [];
+                                if (list.length) renderForecast(list);
+                            }
+                        });
+                    } catch (e) { console.warn('AMap.Weather 异常', e); }
+                }
+            }
+
+            // ---------- 代理 API 基址 (file:// 时需指定 localhost) ----------
+            const API_BASE = window.location.protocol === 'file:' ? 'http://localhost:3001' : '';
+
+            // ---------- 高德地图初始化与导航 (使用loader) ----------
+            let map = null;
+            let AMapLib = null;
+            let destMarker = null;
+            let currentPosition = null; // { lng, lat, address }
+            let destinationPoint = null; // { lng, lat, name }
+            let placeSearch = null;
+            let placeSearchFood = null; // 仅用于周边美食 searchNearBy，不绑 map/panel
+            let routeService = null;
+
+            function formatDistance(meter) {
+                const m = Number(meter);
+                if (!Number.isFinite(m) || m <= 0) return '--';
+                if (m >= 1000) return `${(m / 1000).toFixed(1)}km`;
+                return `${Math.round(m)}m`;
+            }
+
+            function setDestinationPoint(point) {
+                if (!point || point.lng == null || point.lat == null) return;
+                destinationPoint = { lng: Number(point.lng), lat: Number(point.lat), name: point.name || '目的地' };
+                if (destMarker) {
+                    destMarker.setPosition([destinationPoint.lng, destinationPoint.lat]);
+                    destMarker.setTitle(destinationPoint.name);
+                }
+            }
+            function extractLngLat(location) {
+                if (!location) return null;
+                if (typeof location.getLng === 'function' && typeof location.getLat === 'function') {
+                    const lng = Number(location.getLng());
+                    const lat = Number(location.getLat());
+                    if (Number.isFinite(lng) && Number.isFinite(lat)) return { lng, lat };
+                }
+                const lng = Number(location.lng);
+                const lat = Number(location.lat);
+                if (Number.isFinite(lng) && Number.isFinite(lat)) return { lng, lat };
+                return null;
+            }
+
+            function fetchNearbyFood(point, radius = 1500) {
+                if (!foodListEl) return;
+                if (!point || point.lng == null || point.lat == null) {
+                    foodListEl.innerHTML = '<div class="nav-addr">请先搜索有效目的地。</div>';
+                    return;
+                }
+                foodListEl.innerHTML = '<div class="nav-addr">正在获取周边美食...</div>';
+                if (foodHintEl) foodHintEl.textContent = `范围：${point.name || '目的地'}附近 ${radius} 米`;
+                if (!placeSearchFood) {
+                    foodListEl.innerHTML = '<div class="nav-addr">地图加载中，请稍后再试。</div>';
+                    return;
+                }
+                placeSearchFood.searchNearBy('美食', [point.lng, point.lat], radius, function(status, result) {
+                    if (status !== 'complete' || !result || !result.poiList || !result.poiList.pois || !result.poiList.pois.length) {
+                        foodListEl.innerHTML = '<div class="nav-addr">附近暂无推荐美食，可尝试扩大范围或更换目的地。</div>';
+                        return;
+                    }
+                    const pois = result.poiList.pois;
+                    const list = pois.map(function(poi) {
+                        const loc = extractLngLat(poi.location);
+                        const rating = (poi.biz_ext && poi.biz_ext.rating) ? String(poi.biz_ext.rating) : '';
+                        const businessArea = poi.business_area || poi.adname || '';
+                        return {
+                            name: poi.name || '未命名餐厅',
+                            address: poi.address || '暂无地址',
+                            distance: poi.distance != null ? Number(poi.distance) : 0,
+                            rating: rating,
+                            businessArea: businessArea,
+                            lng: loc ? loc.lng : null,
+                            lat: loc ? loc.lat : null
+                        };
+                    });
+                    list.sort(function(a, b) { return (Number(b.rating) || 0) - (Number(a.rating) || 0); });
+                    foodListEl.innerHTML = list.map(function(item) {
+                        const ratingStr = item.rating ? '评分 ' + item.rating : '暂无评分';
+                        const distanceStr = item.distance ? formatDistance(item.distance) : '--';
+                        const business = item.businessArea ? ' · ' + item.businessArea : '';
+                        const safeName = escapeHtml(item.name);
+                        const safeAddr = escapeHtml(item.address);
+                        const lng = item.lng != null ? item.lng : '';
+                        const lat = item.lat != null ? item.lat : '';
+                        return '<div class="food-item">' +
+                            '<div class="food-item-head">' +
+                            '<div><div class="food-name">' + safeName + '</div><div class="food-meta">' + ratingStr + ' · 距离 ' + distanceStr + business + '</div></div>' +
+                            '<button class="food-route-btn" data-lng="' + lng + '" data-lat="' + lat + '" data-name="' + safeName + '" type="button">去这里</button>' +
+                            '</div><div class="food-addr">' + safeAddr + '</div></div>';
+                    }).join('');
+                });
+            }
+
+            async function fetchConfig() {
+                try {
+                    const res = await fetch(API_BASE + '/api/config');
+                    if (res.ok) {
+                        const data = await res.json();
+                        if (data.amapJsKey) AMAP_KEY = data.amapJsKey;
+                        if (data.amapSecurityJsCode) AMAP_SECURITY_JS_CODE = data.amapSecurityJsCode;
+                    }
+                } catch (_) {}
+            }
+
+            function fetchCurrentAddress() {
+                const el = document.getElementById('currentAddrInput');
+                if (!el) return;
+                if (!navigator.geolocation) {
+                    el.placeholder = '浏览器不支持定位';
+                    return;
+                }
+                el.placeholder = '定位中...';
+                navigator.geolocation.getCurrentPosition(
+                    async (pos) => {
+                        const lng = pos.coords.longitude;
+                        const lat = pos.coords.latitude;
+                        try {
+                            const res = await fetch(API_BASE + `/api/regeo?location=${lng},${lat}`);
+                            const data = await res.json();
+                            if (data.ok && data.address) {
+                                currentPosition = { lng, lat, address: data.address };
+                                el.value = data.address;
+                                const ac = data.addressComponent || {};
+                                const cityVal = Array.isArray(ac.city) ? ac.city[0] : ac.city;
+                                const cityForWeather = (cityVal && String(cityVal).trim()) ? cityVal : (ac.province || '天津市');
+                                const district = ac.district || '';
+                                const label = district ? `${(ac.province||'').replace(/[省市]/g,'')} · ${district}` : (cityForWeather || '天津');
+                                fetchAmapWeather(cityForWeather, label, ac.adcode);
+                            } else {
+                                currentPosition = { lng, lat, address: '当前位置' };
+                                el.value = `经度 ${lng.toFixed(4)}, 纬度 ${lat.toFixed(4)}`;
+                            }
+                        } catch (e) {
+                            currentPosition = { lng, lat, address: '当前位置' };
+                            el.value = `经度 ${lng.toFixed(4)}, 纬度 ${lat.toFixed(4)}`;
+                        }
+                        el.placeholder = '如：南开大学（不填默认南开大学）';
+                    },
+                    () => {
+                        el.placeholder = '如：南开大学（不填默认南开大学）';
+                    }
+                );
+            }
+
+            function searchDest() {
+                const keyword = document.getElementById('destInput').value.trim() || '天津奥林匹克中心';
+                if (!map || !placeSearch) return;
+                const searchWrap = document.getElementById('searchResultWrap');
+                const searchPanel = document.getElementById('placeSearchPanel');
+                if (searchWrap && searchPanel) {
+                    searchWrap.style.display = 'block';
+                    searchPanel.innerHTML = '<div class="nav-addr">搜索中...</div>';
+                }
+                placeSearch.search(keyword, (status, result) => {
+                    if (status !== 'complete' && status !== 'no_data') {
+                        console.warn('PlaceSearch 失败', result);
+                        if (searchPanel) searchPanel.innerHTML = '<div class="nav-addr">搜索失败，请稍后重试</div>';
+                    }
+                    if (status === 'no_data') {
+                        if (searchPanel) searchPanel.innerHTML = '<div class="nav-addr">未找到相关地点</div>';
+                    }
+                    if (status === 'complete') {
+                        const pois = result?.poiList?.pois || [];
+                        const first = pois[0];
+                        if (first?.location) {
+                            const point = extractLngLat(first.location);
+                            if (!point) {
+                                geocodeAddress(keyword).then((geo) => {
+                                    if (!geo) return;
+                                    setDestinationPoint(geo);
+                                    fetchNearbyFood(destinationPoint);
+                                });
+                                return;
+                            }
+                            setDestinationPoint({
+                                lng: point.lng,
+                                lat: point.lat,
+                                name: first.name || keyword
+                            });
+                            fetchNearbyFood(destinationPoint);
+                        } else {
+                            geocodeAddress(keyword).then((geo) => {
+                                if (!geo) return;
+                                setDestinationPoint(geo);
+                                fetchNearbyFood(destinationPoint);
+                            });
+                        }
+                    }
+                });
+            }
+
+            /** 解析「经度 x, 纬度 y」格式，或返回 null */
+            function parseLngLatFromDisplay(str) {
+                if (!str || typeof str !== 'string') return null;
+                const m = str.match(/经度\s*([-\d.]+)\s*[,，]\s*纬度\s*([-\d.]+)/);
+                if (m) return { lng: parseFloat(m[1]), lat: parseFloat(m[2]), name: str };
+                return null;
+            }
+
+            async function geocodeAddress(addr) {
+                const res = await fetch(API_BASE + `/api/geocode?address=${encodeURIComponent(addr)}&city=天津`);
+                const data = await res.json();
+                if (!data.ok || !data.locationArr) return null;
+                return { lng: data.locationArr[0], lat: data.locationArr[1], name: data.address || addr };
+            }
+
+            /** 解析起点：优先当前定位经纬度，其次「经度,纬度」字符串，否则地理编码 */
+            async function resolveFromPoint(fromAddr) {
+                if (currentPosition && currentPosition.lng != null && currentPosition.lat != null)
+                    return { lng: currentPosition.lng, lat: currentPosition.lat, name: currentPosition.address || fromAddr };
+                const parsed = parseLngLatFromDisplay(fromAddr);
+                if (parsed) return parsed;
+                return await geocodeAddress(fromAddr || '南开大学');
+            }
+
+            async function resolveDestinationPoint() {
+                if (destinationPoint && destinationPoint.lng != null && destinationPoint.lat != null) return destinationPoint;
+                const toAddr = document.getElementById('destInput').value.trim() || '天津奥林匹克中心';
+                const parsed = parseLngLatFromDisplay(toAddr);
+                if (parsed) {
+                    setDestinationPoint(parsed);
+                    return destinationPoint;
+                }
+                const geo = await geocodeAddress(toAddr);
+                if (geo) setDestinationPoint(geo);
+                return destinationPoint;
+            }
+
+            async function searchRoute(mode, customDestination) {
+                const fromAddr = document.getElementById('currentAddrInput')?.value.trim() || '南开大学';
+                if (!map || !AMapLib) return;
+                const routeWrap = document.getElementById('routeResultWrap');
+                const routePanelEl = document.getElementById('routePanel');
+                if (routeWrap && routePanelEl) {
+                    routeWrap.style.display = 'block';
+                    routePanelEl.innerHTML = '<div class="nav-addr">路线规划中...</div>';
+                }
+                const callback = (status, result) => {
+                    if (status === 'complete') {
+                        if (routeWrap) routeWrap.style.display = 'block';
+                    } else if (status === 'no_data' || status === 'error') {
+                        if (routePanelEl) routePanelEl.innerHTML = '<div class="nav-addr">未找到路线，请检查起终点是否在天津范围内</div>';
+                    }
+                };
+
+                try {
+                    const fromPoint = await resolveFromPoint(fromAddr);
+                    const toPoint = customDestination || await resolveDestinationPoint();
+                    if (!fromPoint || !toPoint) {
+                        if (routePanelEl) routePanelEl.innerHTML = '<div class="nav-addr">起点或终点解析失败，请重试或更换地址</div>';
+                        return;
+                    }
+                    const startLngLat = [fromPoint.lng, fromPoint.lat];
+                    const endLngLat = [toPoint.lng, toPoint.lat];
+
+                    if (routeService && typeof routeService.clear === 'function') {
+                        routeService.clear();
+                    }
+
+                    const pluginMap = {
+                        car: 'AMap.Driving',
+                        walk: 'AMap.Walking',
+                        ride: 'AMap.Riding',
+                        transit: 'AMap.Transfer'
+                    };
+                    const pluginName = pluginMap[mode] || 'AMap.Driving';
+                    AMapLib.plugin([pluginName], function() {
+                        if (mode === 'car') {
+                            routeService = new AMapLib.Driving({ map, panel: 'routePanel' });
+                        } else if (mode === 'walk') {
+                            routeService = new AMapLib.Walking({ map, panel: 'routePanel' });
+                        } else if (mode === 'ride') {
+                            routeService = new AMapLib.Riding({ map, panel: 'routePanel' });
+                        } else {
+                            routeService = new AMapLib.Transfer({ map, panel: 'routePanel', city: '天津' });
+                        }
+                        routeService.search(startLngLat, endLngLat, callback);
+                    });
+                } catch (e) {
+                    if (routePanelEl) routePanelEl.innerHTML = '<div class="nav-addr">路线规划失败，请稍后重试</div>';
+                }
+            }
+
+            async function initAmap() {
+                await fetchConfig();
+                if (!AMAP_KEY) {
+                    document.getElementById('map').innerHTML = '<div style="color:#fff; padding:20px;">请配置高德地图Key</div>';
+                    return;
+                }
+                if (AMAP_SECURITY_JS_CODE) {
+                    window._AMapSecurityConfig = { securityJsCode: AMAP_SECURITY_JS_CODE };
+                }
+                AMapLoader.load({
+                    key: AMAP_KEY,
+                    version: '2.0',
+                    plugins: ['AMap.ControlBar', 'AMap.ToolBar']
+                }).then((AMap) => {
+                    AMapLib = AMap;
+                    map = new AMap.Map('map', {
+                        viewMode: '3D',
+                        pitch: 50,
+                        rotateEnable: true,
+                        pitchEnable: true,
+                        zoom: 13,
+                        rotation: -15,
+                        zooms: [2, 20],
+                        center: [117.190182, 39.125596],
+                        mapStyle: 'amap://styles/normal'
+                    });
+                    const controlBar = new AMap.ControlBar({
+                        position: { right: '10px', top: '10px' }
+                    });
+                    controlBar.addTo(map);
+                    const toolBar = new AMap.ToolBar({
+                        position: { right: '40px', top: '110px' }
+                    });
+                    toolBar.addTo(map);
+                    destMarker = new AMap.Marker({
+                        position: [117.187656, 39.070261],
+                        map: map,
+                        title: '天津奥林匹克中心'
+                    });
+                    setDestinationPoint({ lng: 117.187656, lat: 39.070261, name: '天津奥林匹克中心' });
+                    AMap.plugin(['AMap.PlaceSearch'], function() {
+                        placeSearch = new AMap.PlaceSearch({
+                            map: map,
+                            panel: 'placeSearchPanel',
+                            city: '天津',
+                            citylimit: true,
+                            pageSize: 5,
+                            autoFitView: true
+                        });
+                        placeSearchFood = new AMap.PlaceSearch({ city: '天津', sortRule: 'weight' });
+                        fetchNearbyFood(destinationPoint);
+                    });
+                    setTimeout(function() { map.resize(); }, 100);
+                    try { fetchAmapWeather('天津市', '天津 · 南开大学'); } catch (e) { console.warn('天气加载失败', e); }
+                }).catch(e => {
+                    console.error('高德地图加载失败', e);
+                    document.getElementById('map').innerHTML = '<div style="color:#fff;padding:20px;">地图加载失败，请检查 AMAP_JS_KEY 与安全配置</div>';
+                });
+            }
+
+            // ---------- 聊天功能 (原框架精简版) ----------
+            function scrollToBottom() {
+                messagesEl.scrollTo({ top: messagesEl.scrollHeight, behavior: 'smooth' });
+            }
+            function escapeHtml(raw) { return String(raw).replace(/[&<>"]/g, function(m){ return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[m]; }); }
+            function renderMarkdown(text) { return '<p>' + escapeHtml(text).replace(/\n/g, '<br>') + '</p>'; } // 极简
+
+            function addMessage(role, content) {
+                const row = document.createElement('div'); row.className = `msg-row ${role}`;
+                const bubble = document.createElement('div'); bubble.className = 'msg-bubble';
+                bubble.innerHTML = renderMarkdown(content);
+                row.appendChild(bubble); messagesEl.appendChild(row); scrollToBottom();
+            }
+
+            /** 创建空助手气泡，用于流式输出 */
+            function createStreamingBubble() {
+                const row = document.createElement('div');
+                row.className = 'msg-row assistant';
+                const bubble = document.createElement('div');
+                bubble.className = 'msg-bubble streaming';
+                bubble.innerHTML = '<span class="stream-content"></span><span class="typing-cursor"><img src="荧光棒.png" alt="" /></span>';
+                row.appendChild(bubble);
+                messagesEl.appendChild(row);
+                scrollToBottom();
+                return { row, bubble, contentEl: bubble.querySelector('.stream-content'), cursorEl: bubble.querySelector('.typing-cursor') };
+            }
+
+            // 流式输出节奏：每 58ms 揭示 1 个字符，营造舒缓打字感
+            const REVEAL_INTERVAL_MS = 58;
+            const CHARS_PER_TICK = 1;
+
+            /** 更新流式气泡内容（内联渲染，无 p 包裹以配合光标） */
+            function updateStreamingBubble({ contentEl }, text) {
+                contentEl.innerHTML = escapeHtml(text).replace(/\n/g, '<br>');
+                scrollToBottom();
+            }
+
+            /**
+             * 带节奏的揭示：从 buffer 中按 REVEAL_INTERVAL_MS 逐字显示到 contentEl
+             * @param {HTMLElement} contentEl
+             * @param {() => string} getBuffer
+             * @param {{ onComplete?: ()=>void, isDone?: ()=>boolean }} opts 流结束且揭示完成时调用 onComplete
+             * @returns {() => void} 返回 clear 函数
+             */
+            function startTypedReveal(contentEl, getBuffer, opts = {}) {
+                const { onComplete, isDone } = opts;
+                let lastDisplayed = 0;
+                const tick = () => {
+                    const buf = getBuffer();
+                    if (lastDisplayed < buf.length) {
+                        lastDisplayed = Math.min(lastDisplayed + CHARS_PER_TICK, buf.length);
+                        const shown = buf.slice(0, lastDisplayed);
+                        contentEl.innerHTML = escapeHtml(shown).replace(/\n/g, '<br>');
+                        scrollToBottom();
+                    }
+                    if (isDone?.() && lastDisplayed >= buf.length && onComplete) {
+                        clearInterval(id);
+                        onComplete();
+                    }
+                };
+                const id = setInterval(tick, REVEAL_INTERVAL_MS);
+                tick();
+                return () => clearInterval(id);
+            }
+
+            /** 结束流式，移除光标和 streaming 类 */
+            function finishStreamingBubble({ bubble, cursorEl }) {
+                cursorEl?.remove();
+                bubble?.classList.remove('streaming');
+            }
+
+            function addTypingIndicator() {
+                const row = document.createElement('div'); row.className = 'msg-row assistant'; row.id = 'typingRow';
+                const bubble = document.createElement('div'); bubble.className = 'msg-bubble';
+                bubble.innerHTML = '<div class="typing"><span></span><span></span><span></span></div>';
+                row.appendChild(bubble); messagesEl.appendChild(row); scrollToBottom();
+            }
+            function removeTypingIndicator() { document.getElementById('typingRow')?.remove(); }
+            function setInteractionDisabled(disabled) {
+                waitingResponse = disabled; userInputEl.disabled = disabled; sendBtnEl.disabled = disabled;
+                quickPanelEl.querySelectorAll('.quick-btn').forEach(b => b.disabled = disabled);
+            }
+
+            async function sendUserMessage(content) {
+                const text = content.trim();
+                if (!text || waitingResponse) return;
+                addMessage('user', text);
+                conversationHistory.push({ role: 'user', content: text });
+                setInteractionDisabled(true);
+                addTypingIndicator();
+
+                let streamingState = null;
+                let accumulatedText = '';
+                let isStreamDone = false;
+                let clearReveal = null;
+
+                const onFirstChunk = () => {
+                    if (!streamingState) {
+                        removeTypingIndicator();
+                        streamingState = createStreamingBubble();
+                        clearReveal = startTypedReveal(streamingState.contentEl, () => accumulatedText, {
+                            isDone: () => isStreamDone,
+                            onComplete: () => {
+                                const finalText = accumulatedText;
+                                finishStreamingBubble(streamingState);
+                                conversationHistory.push({ role: 'assistant', content: finalText });
+                                setInteractionDisabled(false);
+                                userInputEl.focus();
+                            }
+                        });
+                    }
+                };
+
+                requestAssistantReplyStream({
+                    onChunk: (chunk) => {
+                        onFirstChunk();
+                        accumulatedText += chunk;
+                    },
+                    onDone: (fullText) => {
+                        onFirstChunk();
+                        accumulatedText = (fullText || accumulatedText) || '';
+                        isStreamDone = true;
+                    },
+                    onError: (e) => {
+                        clearReveal?.();
+                        removeTypingIndicator();
+                        addMessage('assistant', `出错：${e.message}`);
+                        setInteractionDisabled(false);
+                        userInputEl.focus();
+                    }
+                });
+            }
+
+            function resetConversation() {
+                messagesEl.innerHTML = '';
+                conversationHistory = [
+                    { role: 'user', content: '你好，请先向我问好并简要介绍你能如何帮助我选演唱会。' }
+                ];
+                setInteractionDisabled(true);
+                addTypingIndicator();
+                let streamingState = null;
+                let accumulatedText = '';
+                let isStreamDone = false;
+                let clearReveal = null;
+                const onFirstChunk = () => {
+                    if (!streamingState) {
+                        removeTypingIndicator();
+                        streamingState = createStreamingBubble();
+                        clearReveal = startTypedReveal(streamingState.contentEl, () => accumulatedText, {
+                            isDone: () => isStreamDone,
+                            onComplete: () => {
+                                const finalText = accumulatedText;
+                                finishStreamingBubble(streamingState);
+                                conversationHistory.push({ role: 'assistant', content: finalText });
+                                setInteractionDisabled(false);
+                            }
+                        });
+                    }
+                };
+                requestAssistantReplyStream({
+                    onChunk: (chunk) => {
+                        onFirstChunk();
+                        accumulatedText += chunk;
+                    },
+                    onDone: (fullText) => {
+                        onFirstChunk();
+                        accumulatedText = (fullText || accumulatedText) || '';
+                        isStreamDone = true;
+                    },
+                    onError: (e) => {
+                        clearReveal?.();
+                        removeTypingIndicator();
+                        conversationHistory = [];
+                        addMessage('assistant', '你好！我是你的天津演唱会向导。请告诉我你的年龄、音乐偏好、预算或演唱会经验，我来给你推荐～');
+                        setInteractionDisabled(false);
+                    }
+                });
+            }
+
+            // 事件绑定
+            composerEl.addEventListener('submit', (e) => { e.preventDefault(); sendUserMessage(userInputEl.value); userInputEl.value = ''; });
+            quickPanelEl.addEventListener('click', (e) => { const btn = e.target.closest('.quick-btn'); if(btn && btn.dataset.quick) sendUserMessage(btn.dataset.quick); });
+            resetBtnEl.addEventListener('click', () => resetConversation());
+
+            // 导航面板事件
+            document.getElementById('searchDestBtn')?.addEventListener('click', searchDest);
+            document.getElementById('locateBtn')?.addEventListener('click', fetchCurrentAddress);
+            document.getElementById('navWalkBtn')?.addEventListener('click', () => searchRoute('walk'));
+            document.getElementById('navDriveBtn')?.addEventListener('click', () => searchRoute('car'));
+            document.getElementById('navRideBtn')?.addEventListener('click', () => searchRoute('ride'));
+            document.getElementById('navTransitBtn')?.addEventListener('click', () => searchRoute('transit'));
+            document.getElementById('refreshFoodBtn')?.addEventListener('click', async () => {
+                const point = await resolveDestinationPoint();
+                fetchNearbyFood(point);
+            });
+            foodListEl?.addEventListener('click', (e) => {
+                const btn = e.target.closest('.food-route-btn');
+                if (!btn) return;
+                const lng = Number(btn.dataset.lng);
+                const lat = Number(btn.dataset.lat);
+                if (!Number.isFinite(lng) || !Number.isFinite(lat)) return;
+                const name = btn.dataset.name || '目标餐厅';
+                searchRoute('car', { lng, lat, name });
+            });
+
+            // 初始化所有
+            initDateWeather();
+            initAmap();
+            resetConversation(); // 调用 API 获取模型欢迎语
+
+            // 附加：模拟动态更新天气建议 (每秒不用，已静态)
+            // 如果需要真实墨迹天气API，可在此fetch并更新，但因跨域和key问题，此处保留mock。
+            // 参考搜索到的墨迹天气API格式 [citation:2][citation:6]
+        })();
+    </script>
+</body>
+</html>
