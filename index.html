@@ -972,43 +972,99 @@
                 } catch (_) {}
             }
 
+            async function applyLocatedPoint(lng, lat) {
+                const el = document.getElementById('currentAddrInput');
+                if (!el) return;
+                try {
+                    const res = await fetch(API_BASE + `/api/regeo?location=${lng},${lat}`);
+                    const data = await res.json();
+                    if (data.ok && data.address) {
+                        currentPosition = { lng, lat, address: data.address };
+                        el.value = data.address;
+                        const ac = data.addressComponent || {};
+                        const cityVal = Array.isArray(ac.city) ? ac.city[0] : ac.city;
+                        const cityForWeather = (cityVal && String(cityVal).trim()) ? cityVal : (ac.province || '天津市');
+                        const district = ac.district || '';
+                        const label = district ? `${(ac.province||'').replace(/[省市]/g,'')} · ${district}` : (cityForWeather || '天津');
+                        fetchAmapWeather(cityForWeather, label, ac.adcode);
+                        return;
+                    }
+                } catch (_) {}
+                currentPosition = { lng, lat, address: '当前位置' };
+                el.value = `经度 ${lng.toFixed(4)}, 纬度 ${lat.toFixed(4)}`;
+            }
+
+            function getLocateErrorMsg(err) {
+                if (!err) return '定位失败，请重试';
+                if (err.code === 1) return '定位被拒绝，请允许浏览器定位权限';
+                if (err.code === 2) return '定位不可用，请检查网络/GPS';
+                if (err.code === 3) return '定位超时，请重试';
+                return '定位失败，请重试';
+            }
+
             function fetchCurrentAddress() {
                 const el = document.getElementById('currentAddrInput');
                 if (!el) return;
+                const resetPlaceholder = () => { el.placeholder = '如：南开大学（不填默认南开大学）'; };
+                const markLocating = () => {
+                    el.value = '';
+                    el.placeholder = '定位中...';
+                };
+                const markLocateError = (msg) => {
+                    el.value = '';
+                    el.placeholder = msg;
+                };
+
+                const tryAmapGeolocation = () => {
+                    if (!AMapLib || !map) return Promise.reject(new Error('高德定位不可用'));
+                    return new Promise((resolve, reject) => {
+                        AMapLib.plugin(['AMap.Geolocation'], () => {
+                            const geolocation = new AMapLib.Geolocation({
+                                enableHighAccuracy: true,
+                                timeout: 10000
+                            });
+                            geolocation.getCurrentPosition((status, result) => {
+                                if (status === 'complete' && result?.position) {
+                                    const p = result.position;
+                                    const lng = Number(typeof p.getLng === 'function' ? p.getLng() : p.lng);
+                                    const lat = Number(typeof p.getLat === 'function' ? p.getLat() : p.lat);
+                                    if (Number.isFinite(lng) && Number.isFinite(lat)) {
+                                        resolve({ lng, lat });
+                                        return;
+                                    }
+                                }
+                                reject(new Error('高德定位失败'));
+                            });
+                        });
+                    });
+                };
+
+                markLocating();
                 if (!navigator.geolocation) {
-                    el.placeholder = '浏览器不支持定位';
+                    tryAmapGeolocation()
+                        .then(async (pos) => {
+                            await applyLocatedPoint(pos.lng, pos.lat);
+                            resetPlaceholder();
+                        })
+                        .catch(() => markLocateError('浏览器不支持定位，请手动输入地址'));
                     return;
                 }
-                el.placeholder = '定位中...';
+
                 navigator.geolocation.getCurrentPosition(
                     async (pos) => {
-                        const lng = pos.coords.longitude;
-                        const lat = pos.coords.latitude;
-                        try {
-                            const res = await fetch(API_BASE + `/api/regeo?location=${lng},${lat}`);
-                            const data = await res.json();
-                            if (data.ok && data.address) {
-                                currentPosition = { lng, lat, address: data.address };
-                                el.value = data.address;
-                                const ac = data.addressComponent || {};
-                                const cityVal = Array.isArray(ac.city) ? ac.city[0] : ac.city;
-                                const cityForWeather = (cityVal && String(cityVal).trim()) ? cityVal : (ac.province || '天津市');
-                                const district = ac.district || '';
-                                const label = district ? `${(ac.province||'').replace(/[省市]/g,'')} · ${district}` : (cityForWeather || '天津');
-                                fetchAmapWeather(cityForWeather, label, ac.adcode);
-                            } else {
-                                currentPosition = { lng, lat, address: '当前位置' };
-                                el.value = `经度 ${lng.toFixed(4)}, 纬度 ${lat.toFixed(4)}`;
-                            }
-                        } catch (e) {
-                            currentPosition = { lng, lat, address: '当前位置' };
-                            el.value = `经度 ${lng.toFixed(4)}, 纬度 ${lat.toFixed(4)}`;
-                        }
-                        el.placeholder = '如：南开大学（不填默认南开大学）';
+                        await applyLocatedPoint(pos.coords.longitude, pos.coords.latitude);
+                        resetPlaceholder();
                     },
-                    () => {
-                        el.placeholder = '如：南开大学（不填默认南开大学）';
-                    }
+                    async (err) => {
+                        try {
+                            const amapPos = await tryAmapGeolocation();
+                            await applyLocatedPoint(amapPos.lng, amapPos.lat);
+                            resetPlaceholder();
+                        } catch (_) {
+                            markLocateError(getLocateErrorMsg(err));
+                        }
+                    },
+                    { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
                 );
             }
 
