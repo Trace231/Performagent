@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>演唱会小助手 · 南门东开</title>
+    <title>小星 · 演唱会助手 · 南门东开</title>
     <!-- 字体 & 图标库 -->
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -32,6 +32,15 @@
         * {
             box-sizing: border-box;
         }
+        a, button:not(:disabled), [role="button"]:not([aria-disabled="true"]), .ghost-btn, .agent-mode-btn, .quick-btn:not(:disabled), .nav-btn, .food-route-btn, .send-btn:not(:disabled), .agent-option-btn:not(:disabled) {
+            cursor: url('cursor.png') 4 4, pointer;
+        }
+        a:active, button:active, [role="button"]:active, .ghost-btn:active, .agent-mode-btn:active, .quick-btn:active, .nav-btn:active, .food-route-btn:active, .send-btn:active, .agent-option-btn:active {
+            cursor: url('cursor-pressed.png') 4 4, pointer;
+        }
+        input, textarea {
+            cursor: text;
+        }
 
         html, body {
             margin: 0;
@@ -41,6 +50,13 @@
             background: url('04-2.svg') center center / cover no-repeat fixed;
             background-color: var(--bg1);
             overflow: hidden;
+            cursor: url('cursor.png') 4 4, auto;
+        }
+        body.cursor-pressed {
+            cursor: url('cursor-pressed.png') 4 4, pointer !important;
+        }
+        body.cursor-pressed input, body.cursor-pressed textarea {
+            cursor: text !important;
         }
 
         body::before, body::after {
@@ -92,11 +108,11 @@
             height: min(calc(100vh - 30px), 820px);
             min-height: 0;
             border-radius: 28px;
-            border: 1px solid rgba(255, 255, 255, 0.18);
-            background: linear-gradient(130deg, rgba(255, 255, 255, 0.14), rgba(255, 255, 255, 0.04));
+            border: 1px solid rgba(255, 255, 255, 0.22);
+            background: linear-gradient(130deg, rgba(255, 255, 255, 0.16), rgba(255, 255, 255, 0.06));
             backdrop-filter: blur(15px);
             -webkit-backdrop-filter: blur(15px);
-            box-shadow: 0 28px 60px rgba(3, 5, 18, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.26);
+            box-shadow: 0 28px 60px rgba(3, 5, 18, 0.5), 0 0 40px rgba(139,92,246,0.06), inset 0 1px 0 rgba(255, 255, 255, 0.28);
             display: flex;
             flex-direction: column;
             overflow: hidden;
@@ -109,8 +125,8 @@
             align-items: center;
             justify-content: space-between;
             padding: 18px 20px;
-            border-bottom: 1px solid rgba(255, 255, 255, 0.12);
-            background: rgba(7, 12, 27, 0.35);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.16);
+            background: linear-gradient(180deg, rgba(12,16,36,0.5), rgba(7,12,27,0.4));
         }
 
         .brand {
@@ -126,12 +142,29 @@
             flex-shrink: 0;
             box-shadow: 0 0 22px rgba(139, 92, 246, 0.4);
             animation: assistantPulse 3s ease-in-out infinite;
+            cursor: pointer;
+            transition: transform 0.2s ease;
         }
+        .avatar-wrap:hover { transform: scale(1.05); }
         .avatar-wrap img {
             width: 100%;
             height: 100%;
             object-fit: cover;
             display: block;
+            transform-origin: center 70%;
+        }
+        .avatar-wrap.avatar-shake img {
+            animation: avatarShake 0.55s ease-in-out;
+        }
+        @keyframes avatarShake {
+            0%, 100% { transform: rotate(0deg); }
+            12% { transform: rotate(-14deg); }
+            24% { transform: rotate(14deg); }
+            36% { transform: rotate(-10deg); }
+            48% { transform: rotate(10deg); }
+            60% { transform: rotate(-5deg); }
+            72% { transform: rotate(5deg); }
+            84% { transform: rotate(-2deg); }
         }
         .title { font-size: 1rem; font-weight: 800; margin: 0 0 4px; text-shadow: 0 1px 2px rgba(0,0,0,0.08); }
         .status {
@@ -143,12 +176,138 @@
             background: var(--success); box-shadow: 0 0 10px var(--success);
         }
         .ghost-btn {
-            border: 1px solid rgba(255,255,255,0.18); background: rgba(255,255,255,0.1);
-            color: var(--text-main); padding: 8px 12px; border-radius: 12px;
+            border: 1px solid rgba(139,92,246,0.4); background: linear-gradient(135deg, rgba(139,92,246,0.22), rgba(6,182,212,0.12));
+            color: #ffffff; text-shadow: 0 1px 3px rgba(0,0,0,0.4), 0 0 1px rgba(0,0,0,0.3); padding: 8px 14px; border-radius: 12px;
             font-size: 0.82rem; font-weight: 600; cursor: pointer;
-            transition: all 0.2s ease;
+            box-shadow: 0 2px 8px rgba(31,18,63,0.2);
+            transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
         }
-        .ghost-btn:hover { border-color: rgba(255,255,255,0.28); transform: translateY(-1px); }
+        .ghost-btn:hover {
+            border-color: rgba(139,92,246,0.6);
+            transform: translateY(-1px);
+            box-shadow: 0 4px 16px rgba(139,92,246,0.3);
+        }
+        .header-btns { display: flex; align-items: center; gap: 8px; }
+        .agent-mode-btn {
+            border: 1px solid rgba(139,92,246,0.4); background: linear-gradient(135deg, rgba(139,92,246,0.22), rgba(6,182,212,0.12));
+            color: #ffffff; text-shadow: 0 1px 3px rgba(0,0,0,0.4), 0 0 1px rgba(0,0,0,0.3); padding: 8px 14px; border-radius: 12px;
+            font-size: 0.82rem; font-weight: 600; cursor: pointer;
+            display: flex; align-items: center; gap: 6px;
+            box-shadow: 0 2px 8px rgba(31,18,63,0.2);
+            transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        .agent-mode-btn:hover {
+            border-color: rgba(139,92,246,0.6);
+            transform: translateY(-1px);
+            box-shadow: 0 4px 16px rgba(139,92,246,0.25);
+        }
+        .agent-mode-btn.active {
+            border-color: rgba(139,92,246,0.75);
+            background: linear-gradient(135deg, rgba(139,92,246,0.35), rgba(6,182,212,0.2));
+            color: #ffffff; text-shadow: 0 1px 3px rgba(0,0,0,0.4), 0 0 1px rgba(0,0,0,0.3);
+            box-shadow: 0 0 20px rgba(139,92,246,0.4), 0 4px 16px rgba(139,92,246,0.3);
+        }
+        .agent-options {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            margin-top: 16px;
+        }
+        .agent-option-btn {
+            position: relative;
+            overflow: visible;
+            padding: 12px 16px 12px 20px;
+            border-radius: 16px;
+            font-size: 0.9rem;
+            font-weight: 500;
+            line-height: 1.4;
+            text-align: left;
+            cursor: pointer;
+            color: #ffffff;
+            text-shadow: 0 1px 3px rgba(0,0,0,0.4), 0 0 1px rgba(0,0,0,0.3);
+            background: linear-gradient(135deg, rgba(139,92,246,0.18), rgba(6,182,212,0.08));
+            backdrop-filter: blur(14px);
+            -webkit-backdrop-filter: blur(14px);
+            border: 1px solid rgba(255,255,255,0.2);
+            box-shadow: inset 0 0 24px rgba(139,92,246,0.06),
+                        0 2px 12px rgba(0,0,0,0.08);
+            transition: all 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+            animation: agentOptionIn 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+        }
+        .agent-option-btn::before {
+            content: "";
+            position: absolute;
+            left: 0;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 4px;
+            height: 55%;
+            border-radius: 2px;
+            background: linear-gradient(180deg, rgba(139,92,246,0.9), rgba(6,182,212,0.8));
+            opacity: 0.7;
+        }
+        .agent-option-btn:nth-child(1) { animation-delay: 0.05s; }
+        .agent-option-btn:nth-child(2) { animation-delay: 0.1s; }
+        .agent-option-btn:nth-child(3) { animation-delay: 0.15s; }
+        .agent-option-btn:nth-child(4) { animation-delay: 0.2s; }
+        .agent-option-btn:hover:not(:disabled) {
+            transform: translateY(-3px);
+            border-color: rgba(139,92,246,0.5);
+            box-shadow: 0 8px 28px rgba(139,92,246,0.22),
+                        0 0 48px rgba(6,182,212,0.12),
+                        inset 0 0 24px rgba(139,92,246,0.08);
+        }
+        .agent-option-btn:active:not(:disabled) {
+            transform: scale(0.98);
+        }
+        .agent-option-btn:disabled {
+            cursor: default;
+            opacity: 0.75;
+        }
+        @keyframes agentOptionIn {
+            from { opacity: 0; transform: translateY(14px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .agent-option-btn .ripple {
+            position: absolute;
+            width: 8px;
+            height: 8px;
+            margin-left: -4px;
+            margin-top: -4px;
+            border-radius: 50%;
+            background: radial-gradient(circle, rgba(255,255,255,0.9), rgba(139,92,246,0.6));
+            transform: scale(0);
+            animation: rippleExpand 0.6s ease-out forwards;
+            pointer-events: none;
+        }
+        .agent-option-btn .burst-particle {
+            position: absolute;
+            width: 8px;
+            height: 8px;
+            margin-left: -4px;
+            margin-top: -4px;
+            border-radius: 50%;
+            pointer-events: none;
+            z-index: 2;
+            background: radial-gradient(circle at 30% 30%, rgba(255,255,255,0.98), rgba(139,92,246,0.4));
+            box-shadow: 0 0 10px rgba(255,255,255,0.5), 0 0 20px rgba(6,182,212,0.35);
+        }
+        @keyframes rippleExpand {
+            to { transform: scale(18); opacity: 0; }
+        }
+        @keyframes burstOut {
+            0% {
+                transform: translate(0, 0) scale(1);
+                opacity: 1;
+            }
+            70% {
+                opacity: 0.8;
+            }
+            100% {
+                transform: translate(var(--tx), var(--ty)) scale(0.2);
+                opacity: 0;
+            }
+        }
 
         .api-section {
             padding: 12px 20px; border-bottom: 1px solid rgba(255,255,255,0.1);
@@ -163,9 +322,9 @@
         .messages::-webkit-scrollbar { width: 8px; }
         .messages::-webkit-scrollbar-thumb { border-radius: 8px; background: rgba(255,255,255,0.25); }
 
-        .msg-row { display: flex; max-width: 100%; animation: fadeInUp 0.55s cubic-bezier(0.25, 0.46, 0.45, 0.94) both; }
-        .msg-row.assistant { justify-content: flex-start; }
-        .msg-row.user { justify-content: flex-end; }
+        .msg-row { display: flex; max-width: 100%; }
+        .msg-row.assistant { justify-content: flex-start; animation: fadeInUpLeft 0.6s cubic-bezier(0.22, 0.61, 0.36, 1) both; }
+        .msg-row.user { justify-content: flex-end; animation: fadeInUpRight 0.6s cubic-bezier(0.22, 0.61, 0.36, 1) both; }
         .msg-bubble {
             max-width: 82%; padding: 12px 14px; line-height: 1.55; border-radius: 16px;
             border: 1px solid rgba(255,255,255,0.2); word-break: break-word;
@@ -209,36 +368,62 @@
             vertical-align: text-bottom;
             animation: cursorGlow 1.6s ease-in-out infinite;
         }
+        @keyframes cursorGlow {
+            0%, 100% {
+                filter: drop-shadow(0 0 4px rgba(160,100,220,0.5)) drop-shadow(0 0 8px rgba(255,200,50,0.25));
+                opacity: 1;
+                transform: scale(1);
+            }
+            50% {
+                filter: drop-shadow(0 0 8px rgba(160,100,220,0.85)) drop-shadow(0 0 14px rgba(255,200,50,0.5));
+                opacity: 0.95;
+                transform: scale(1.06);
+            }
+        }
 
         .quick-panel {
-            border-top: 1px solid rgba(255,255,255,0.1); padding: 12px 16px;
+            border-top: 1px solid rgba(255,255,255,0.14); padding: 12px 16px;
             display: flex; flex-wrap: wrap; gap: 8px;
-            background: rgba(10,12,28,0.34);
+            background: linear-gradient(180deg, rgba(10,12,28,0.4), rgba(7,10,24,0.35));
         }
         .quick-btn {
-            border: 1px solid rgba(255,255,255,0.18); background: rgba(255,255,255,0.08);
-            color: var(--text-main); border-radius: 999px; padding: 8px 12px;
-            font-size: 0.78rem; cursor: pointer; transition: all 0.2s ease;
+            border: 1px solid rgba(139,92,246,0.35); background: linear-gradient(135deg, rgba(139,92,246,0.28), rgba(6,182,212,0.15));
+            color: #ffffff; text-shadow: 0 1px 3px rgba(0,0,0,0.4), 0 0 1px rgba(0,0,0,0.3); border-radius: 999px; padding: 9px 14px;
+            font-size: 0.8rem; font-weight: 500; cursor: pointer;
+            box-shadow: 0 2px 8px rgba(31,18,63,0.15);
+            transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
         }
-        .quick-btn:hover { border-color: rgba(6,182,212,0.65); box-shadow: 0 0 18px rgba(6,182,212,0.24); }
+        .quick-btn:hover {
+            transform: translateY(-2px);
+            border-color: rgba(6,182,212,0.6);
+            box-shadow: 0 6px 20px rgba(6,182,212,0.3);
+        }
+        .quick-btn:active { transform: scale(0.98); }
 
         .composer {
-            border-top: 1px solid rgba(255,255,255,0.12); padding: 14px 16px 16px;
-            display: flex; gap: 10px; background: rgba(7,10,24,0.34);
+            border-top: 1px solid rgba(255,255,255,0.18); padding: 14px 16px 16px;
+            display: flex; gap: 10px; background: linear-gradient(180deg, rgba(12,16,36,0.5), rgba(7,10,24,0.45));
+            box-shadow: 0 -4px 20px rgba(139,92,246,0.08);
         }
         .input {
-            flex: 1; border: 1px solid rgba(255,255,255,0.2); border-radius: 14px;
-            background: var(--glass); color: var(--text-main); padding: 12px 14px;
-            outline: none; transition: border-color 0.2s ease;
+            flex: 1; border: 1px solid rgba(255,255,255,0.28); border-radius: 14px;
+            background: rgba(255,255,255,0.12); color: #ffffff; padding: 12px 14px;
+            outline: none; transition: border-color 0.2s ease, box-shadow 0.2s ease, background 0.2s ease;
+            box-shadow: inset 0 1px 2px rgba(0,0,0,0.08), 0 0 0 1px rgba(255,255,255,0.06);
         }
-        .input:focus { border-color: rgba(139,92,246,0.75); box-shadow: 0 0 0 3px rgba(139,92,246,0.18); }
+        .input::placeholder { color: rgba(255,255,255,0.55); }
+        .input:focus {
+            border-color: rgba(139,92,246,0.75);
+            box-shadow: 0 0 0 3px rgba(139,92,246,0.22), inset 0 1px 2px rgba(0,0,0,0.06);
+            background: rgba(255,255,255,0.14);
+        }
         .send-btn {
-            width: 52px; height: 52px; border: 1px solid rgba(255,255,255,0.32); border-radius: 50%;
+            width: 52px; height: 52px; border: 1px solid rgba(255,255,255,0.36); border-radius: 50%;
             cursor: pointer; position: relative; isolation: isolate; padding: 0;
             display: flex; align-items: center; justify-content: center; overflow: hidden;
-            background: radial-gradient(circle at 28% 26%, rgba(255,255,255,0.4), transparent 52%),
+            background: radial-gradient(circle at 28% 26%, rgba(255,255,255,0.45), transparent 52%),
                         linear-gradient(140deg, #8b5cf6 0%, #7c3aed 42%, #06b6d4 100%);
-            box-shadow: 0 10px 24px rgba(31,18,63,0.45), 0 0 0 1px rgba(255,255,255,0.08) inset;
+            box-shadow: 0 10px 24px rgba(31,18,63,0.5), 0 0 20px rgba(6,182,212,0.15), 0 0 0 1px rgba(255,255,255,0.1) inset;
             transition: transform 0.22s ease, box-shadow 0.22s ease, filter 0.22s ease;
         }
         .send-btn::before {
@@ -284,9 +469,13 @@
             box-shadow: 0 8px 18px rgba(31,18,63,0.26);
         }
 
-        @keyframes fadeInUp {
-            from { opacity: 0; transform: translateY(12px) scale(0.98); }
-            to { opacity: 1; transform: translateY(0) scale(1); }
+        @keyframes fadeInUpLeft {
+            from { opacity: 0; transform: translate(-8px, 16px) scale(0.98); }
+            to { opacity: 1; transform: translate(0, 0) scale(1); }
+        }
+        @keyframes fadeInUpRight {
+            from { opacity: 0; transform: translate(8px, 16px) scale(0.98); }
+            to { opacity: 1; transform: translate(0, 0) scale(1); }
         }
         @keyframes assistantPulse { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-2px); } }
         @keyframes dotBounce { 0%,80%,100% { transform: translateY(0); opacity:0.75; } 40% { transform: translateY(-4px); opacity:1; } }
@@ -294,19 +483,6 @@
         @keyframes sendTakeoff {
             0%, 100% { transform: rotate(-6deg) translateX(3px) translateY(-2px); }
             50% { transform: rotate(-4deg) translateX(5px) translateY(-4px); }
-        }
-        /* 荧光棒光标：发光闪烁 + 轻微呼吸 */
-        @keyframes cursorGlow {
-            0%, 100% {
-                filter: drop-shadow(0 0 4px rgba(160,100,220,0.5)) drop-shadow(0 0 8px rgba(255,200,50,0.25));
-                opacity: 1;
-                transform: scale(1);
-            }
-            50% {
-                filter: drop-shadow(0 0 8px rgba(160,100,220,0.85)) drop-shadow(0 0 14px rgba(255,200,50,0.5));
-                opacity: 0.95;
-                transform: scale(1.06);
-            }
         }
         @keyframes streamingPulse {
             0%, 100% {
@@ -452,12 +628,18 @@
         .nav-addr { font-size: 0.78rem; color: var(--text-soft); }
         .nav-btns { display: flex; flex-wrap: wrap; gap: 7px; }
         .nav-btn {
-            padding: 7px 10px; border-radius: 10px; border: 1px solid rgba(255,255,255,0.2);
-            background: rgba(139,92,246,0.25); color: var(--text-main); font-size: 0.78rem;
-            cursor: pointer; transition: all 0.2s ease;
+            padding: 8px 12px; border-radius: 12px; border: 1px solid rgba(139,92,246,0.4);
+            background: linear-gradient(135deg, rgba(139,92,246,0.38), rgba(6,182,212,0.2));
+            color: #ffffff; text-shadow: 0 1px 3px rgba(0,0,0,0.4), 0 0 1px rgba(0,0,0,0.3); font-size: 0.8rem; font-weight: 500;
+            cursor: pointer; box-shadow: 0 2px 8px rgba(31,18,63,0.2);
+            transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
         }
         .nav-btn-mini { padding: 7px 10px; font-size: 0.76rem; flex-shrink: 0; }
-        .nav-btn:hover { background: rgba(139,92,246,0.4); border-color: rgba(139,92,246,0.6); }
+        .nav-btn:hover {
+            background: linear-gradient(135deg, rgba(139,92,246,0.45), rgba(6,182,212,0.25));
+            border-color: rgba(139,92,246,0.7);
+            box-shadow: 0 4px 16px rgba(139,92,246,0.35);
+        }
         .route-btns .nav-btn { min-width: 64px; }
         .result-panel-wrap {
             max-height: 170px; overflow-y: auto; margin-top: 9px;
@@ -511,15 +693,22 @@
         .food-meta { font-size: 0.72rem; color: var(--text-soft); }
         .food-addr { font-size: 0.74rem; color: var(--text-soft); line-height: 1.35; }
         .food-route-btn {
-            border: 1px solid rgba(6,182,212,0.45);
-            background: rgba(6,182,212,0.18);
-            color: var(--text-main);
-            border-radius: 8px;
-            padding: 5px 8px;
-            font-size: 0.72rem;
+            border: 1px solid rgba(6,182,212,0.5);
+            background: linear-gradient(135deg, rgba(6,182,212,0.32), rgba(139,92,246,0.2));
+            color: #ffffff; text-shadow: 0 1px 3px rgba(0,0,0,0.4), 0 0 1px rgba(0,0,0,0.3);
+            border-radius: 10px;
+            padding: 6px 10px;
+            font-size: 0.74rem;
+            font-weight: 500;
             cursor: pointer;
+            box-shadow: 0 2px 6px rgba(6,182,212,0.2);
+            transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
         }
-        .food-route-btn:hover { background: rgba(6,182,212,0.3); }
+        .food-route-btn:hover {
+            transform: translateY(-1px);
+            background: linear-gradient(135deg, rgba(6,182,212,0.4), rgba(139,92,246,0.25));
+            box-shadow: 0 4px 12px rgba(6,182,212,0.35);
+        }
 
         /* 响应式 */
         @media (max-width: 1000px) {
@@ -536,16 +725,21 @@
 <body>
     <main class="app-shell">
         <!-- 左侧聊天区 (原框架核心) -->
-        <section class="chat-card" aria-label="演唱会小助手聊天窗口">
+        <section class="chat-card" aria-label="小星演唱会助手聊天窗口">
             <header class="chat-header">
                 <div class="brand">
-                    <div class="avatar-wrap" aria-hidden="true"><img src="头像.png" alt="小助手" class="avatar-img" /></div>
+                    <div id="avatarWrap" class="avatar-wrap" aria-label="点击小星头像，他会可爱地摇摇头" role="button" tabindex="0"><img src="头像.png" alt="小星" class="avatar-img" /></div>
                     <div class="title-group">
-                        <h1 class="title">🎤 演唱会智多星</h1>
+                        <h1 class="title">小星</h1>
                         <p class="status"><span class="status-dot" aria-hidden="true"></span><span>在线</span></p>
                     </div>
                 </div>
-                <button id="resetBtn" class="ghost-btn" aria-label="开始新咨询">新对话</button>
+                <div class="header-btns">
+                    <button id="agentModeBtn" class="agent-mode-btn" aria-label="Agent 问答模式" title="开启后由小星提问，你选择选项回答">
+                        <i class="fa-solid fa-robot"></i> 选项模式
+                    </button>
+                    <button id="resetBtn" class="ghost-btn" aria-label="开始新咨询">新对话</button>
+                </div>
             </header>
 
             <!-- 内置 API Key (示例key, 用户可自行替换) 采用原框架内置key变量 -->
@@ -554,10 +748,10 @@
             <section id="messages" class="messages" aria-live="polite"></section>
 
             <section class="quick-panel" id="quickPanel" aria-label="常用快速选项">
-                <button class="quick-btn" data-quick="小助手你好，我想问关于演唱会的问题">演唱会求助</button>
-                <button class="quick-btn" data-quick="小助手，请帮我根据预算设计旅行计划">预算</button>
+                <button class="quick-btn" data-quick="小星你好，我想问关于演唱会的问题">演唱会求助</button>
+                <button class="quick-btn" data-quick="小星，请帮我根据预算设计旅行计划">预算</button>
                 <button class="quick-btn" data-quick="第一次参加演唱会，有什么注意">首次参加</button>
-                <button class="quick-btn" data-quick="小助手，请帮我查一下关于我演唱会的资料">查资料</button>
+                <button class="quick-btn" data-quick="小星，请帮我查一下关于我演唱会的资料">查资料</button>
             </section>
 
             <form id="composer" class="composer" autocomplete="off">
@@ -652,6 +846,10 @@
     <script src="https://webapi.amap.com/loader.js"></script>
     <script>
         (function() {
+            // 按下时保持自定义光标，防止浏览器还原为系统光标
+            document.addEventListener('mousedown', function() { document.body.classList.add('cursor-pressed'); });
+            document.addEventListener('mouseup', function() { document.body.classList.remove('cursor-pressed'); });
+            document.addEventListener('mouseleave', function() { document.body.classList.remove('cursor-pressed'); });
             // ---------- 配置 ----------
             // 高德地图 Key：优先从 /api/config 获取，否则使用本地默认（需通过 localhost 访问代理）
             let AMAP_KEY = '675c1e1b25ff9f707799dad004294197';
@@ -679,6 +877,8 @@
             const resetBtnEl = document.getElementById('resetBtn');
             const composerEl = document.getElementById('composer');
             const quickPanelEl = document.getElementById('quickPanel');
+            const agentModeBtnEl = document.getElementById('agentModeBtn');
+            let agentMode = false;
             const dateDisplay = document.getElementById('dateDisplay');
             const currTemp = document.getElementById('currTemp');
             const currDesc = document.getElementById('currDesc');
@@ -697,35 +897,46 @@
             const MODEL_NAME = 'qwen3.5-35b-a3b';
 
             /**
-             * 系统提示：市场调研结论，使模型成为特化演唱会助手
+             * 系统提示：基于市场调研报告（N=654 问卷、访谈、社媒分析）的演唱会助手知识库
              */
             const SYSTEM_PROMPT =
-                '你是一个专业的演唱会小助手，基于以下市场调研数据为用户提供个性化建议：\n' +
-                '- 年龄分组偏好：\n' +
-                '  * 18-25岁：喜欢流行、嘻哈、电子音乐，倾向站位区，注重互动。\n' +
-                '  * 26-35岁：喜欢摇滚、独立音乐、流行，倾向座位区，注重音响效果。\n' +
-                '  * 36-60岁：喜欢经典摇滚、怀旧、民谣，倾向看台座位，避免拥挤。\n' +
-                '- 预算推荐：\n' +
-                '  * 低预算（<300元）：推荐看台票，性价比高。\n' +
-                '  * 中预算（300-800元）：推荐内场后排或看台前排，音效视野均衡。\n' +
-                '  * 高预算（>800元）：推荐VIP内场或前排，可能包含伴手礼。\n' +
-                '- 经验提示：\n' +
-                '  * 首次参加：建议提前1小时到场，熟悉场地。\n' +
-                '  * 资深观众：可以加入粉丝组织获取应援物。\n' +
-                '- 音乐风格与歌手示例：\n' +
-                '  * 流行：周杰伦、Taylor Swift、林俊杰\n' +
-                '  * 摇滚：五月天、Coldplay、Beyond\n' +
-                '  * 电子：Alan Walker、The Chainsmokers\n' +
-                '请根据用户提供的信息（年龄、喜欢的音乐风格、预算、经验等），结合以上数据，给出合适的演唱会推荐和提示。对话要亲切、友好，逐步收集信息，最终提供个性化建议。\n回复请尽量简洁，每条消息控制在两三句话到一小段即可，避免长篇大论。';
+                '你是小星，一个亲切的演唱会小助手。你基于一份针对 Z 世代（1995—2009 年出生）的演唱会市场调研（有效问卷 654 份、访谈、社媒分析）提供建议。\n\n' +
+                '【人群与动机】\n' +
+                '- 调研显示：情感体验是驱动观演的核心，其次是群体归属感、自我实现。成本障碍对多数人不是硬门槛。\n' +
+                '- 多数人愿为门票溢价，但其他消费（交通、住宿、周边）讲性价比。\n\n' +
+                '【预算与消费】\n' +
+                '- 非门票：200—500 元或 501—1000 元最常见；周边月均 50—200 元为主。\n' +
+                '- 外地观众：通常 500—1000 元（含住宿），1—2 天；本地观众：200—500 元。\n\n' +
+                '【天津观演】\n' +
+                '- 天津奥体中心地铁接驳便利。散场后打车难、夜宵少是常见痛点。\n' +
+                '- 外地来津观众比例约 70%，跨城观演趋势明显。\n\n' +
+                '【信息与购票】\n' +
+                '- 票务平台（大麦/猫眼）、微博粉丝群、抖音小红书是主要信息渠道。\n' +
+                '- 多数人拒绝黄牛溢价，对「割韭菜」保持警惕。\n\n' +
+                '【建议风格】\n' +
+                '- 回复简洁，每条 2—3 句到一小段。\n' +
+                '- 结合用户年龄、预算、经验、偏好，给出个性化建议。\n' +
+                '- 可提及调研中的典型数据（如票价档位 380/680/1280 元），但不要堆砌数字。\n' +
+                '- 对话要亲切、友好，逐步收集信息，最终提供个性化建议。';
 
             // 对话历史（仅 user/assistant，system 每次请求时注入）
             let conversationHistory = [];
             let waitingResponse = false;
 
+            const AGENT_OPTION_INSTRUCTION =
+                '\n\n【重要】当前处于 Agent 问答模式。你叫小星，与用户对话时请用「小星」自称。你的每条回复必须严格按以下格式输出：\n' +
+                '1. 先写正文，然后换行；\n' +
+                '2. 接着写【选项】两字，换行；\n' +
+                '3. 再写 4 个选项，每行一个，格式可为 "1. 选项文字" 或 "选项文字"。\n' +
+                '【必须】带【选项】时，正文的最后一句必须是疑问句（以？结尾），用于引导用户从选项中选择。\n' +
+                '示例：\n' +
+                '请问你想了解哪方面的内容？\n\n【选项】\n1. 近期演唱会推荐\n2. 预算规划\n3. 交通路线\n4. 周边美食';
+
             /** 构建请求消息：system + 历史 */
             function buildMessagesForApi() {
+                const systemContent = agentMode ? (SYSTEM_PROMPT + AGENT_OPTION_INSTRUCTION) : SYSTEM_PROMPT;
                 return [
-                    { role: 'system', content: SYSTEM_PROMPT },
+                    { role: 'system', content: systemContent },
                     ...conversationHistory
                 ];
             }
@@ -852,9 +1063,9 @@
                         if (data.forecasts && data.forecasts.length) renderForecast(data.forecasts);
                         return;
                     }
-                    currDesc.innerText = '加载失败（请通过 http://localhost:3001 打开页面并启动代理）';
+                    currDesc.innerText = data.error || '天气接口异常';
                 } catch (e) {
-                    currDesc.innerText = '加载失败（请通过 http://localhost:3001 打开页面并启动代理）';
+                    currDesc.innerText = getApiErrorMessage(e, '天气');
                 }
                 if (AMapLib && AMapLib.Weather) {
                     try {
@@ -872,6 +1083,13 @@
 
             // ---------- 代理 API 基址 (file:// 时需指定 localhost) ----------
             const API_BASE = window.location.protocol === 'file:' ? 'http://localhost:3001' : '';
+            function getApiErrorMessage(e, type) {
+                const msg = e && e.message ? String(e.message) : '';
+                if (/Failed to fetch|NetworkError|Load failed/i.test(msg) || msg === '') {
+                    return '请通过 http://localhost:3001 打开页面并确保已执行 cd server && npm start 启动代理';
+                }
+                return (type ? type + '：' : '') + (msg || '请求失败');
+            }
 
             // ---------- 高德地图初始化与导航 (使用loader) ----------
             let map = null;
@@ -986,10 +1204,13 @@
                         const cityForWeather = (cityVal && String(cityVal).trim()) ? cityVal : (ac.province || '天津市');
                         const district = ac.district || '';
                         const label = district ? `${(ac.province||'').replace(/[省市]/g,'')} · ${district}` : (cityForWeather || '天津');
-                        fetchAmapWeather(cityForWeather, label, ac.adcode);
+                        fetchAmapWeather(cityForWeather, label, ac.adcode || null);
                         return;
                     }
-                } catch (_) {}
+                    el.placeholder = data.error || '逆地理解析失败';
+                } catch (e) {
+                    el.placeholder = getApiErrorMessage(e, '定位');
+                }
                 currentPosition = { lng, lat, address: '当前位置' };
                 el.value = `经度 ${lng.toFixed(4)}, 纬度 ${lat.toFixed(4)}`;
             }
@@ -1274,10 +1495,79 @@
             function escapeHtml(raw) { return String(raw).replace(/[&<>"]/g, function(m){ return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[m]; }); }
             function renderMarkdown(text) { return '<p>' + escapeHtml(text).replace(/\n/g, '<br>') + '</p>'; } // 极简
 
+            /** 解析助手回复中的【选项】块，返回 { mainText, options } 或 null */
+            function parseAgentOptions(text) {
+                const match = text.match(/^([\s\S]*?)【选项】\s*\n([\s\S]+)$/);
+                if (!match) return null;
+                const mainText = match[1].trim();
+                const lines = match[2].trim().split(/\n/).map(function(s) {
+                    return s.replace(/^\d+[\.\、]\s*/, '').trim();
+                }).filter(Boolean);
+                if (lines.length >= 4) return { mainText: mainText, options: lines.slice(0, 4) };
+                return null;
+            }
+
+            /** 在气泡内渲染选项按钮并绑定点击（含涟漪） */
+            function renderAgentOptionsInBubble(bubble, options, onSelect) {
+                const wrap = document.createElement('div');
+                wrap.className = 'agent-options';
+                options.forEach(function(opt) {
+                    const btn = document.createElement('button');
+                    btn.type = 'button';
+                    btn.className = 'agent-option-btn';
+                    btn.textContent = opt;
+                    btn.dataset.option = opt;
+                    btn.addEventListener('click', function(e) {
+                        if (btn.disabled) return;
+                        createBurstEffect(btn, e);
+                        wrap.querySelectorAll('.agent-option-btn').forEach(function(b) { b.disabled = true; });
+                        onSelect(opt);
+                    });
+                    wrap.appendChild(btn);
+                });
+                bubble.appendChild(wrap);
+            }
+
+            /** 唯美爆开特效：从点击位置向外迸发多颗粒子 */
+            function createBurstEffect(btn, e) {
+                const rect = btn.getBoundingClientRect();
+                const cx = e.clientX - rect.left;
+                const cy = e.clientY - rect.top;
+                const count = 14;
+                const radius = 70;
+                for (var i = 0; i < count; i++) {
+                    var angle = (i / count) * Math.PI * 2 + (Math.random() - 0.5) * 0.4;
+                    var dist = radius * (0.85 + Math.random() * 0.3);
+                    var tx = Math.cos(angle) * dist;
+                    var ty = Math.sin(angle) * dist;
+                    var p = document.createElement('span');
+                    p.className = 'burst-particle';
+                    p.style.left = cx + 'px';
+                    p.style.top = cy + 'px';
+                    p.style.setProperty('--tx', tx + 'px');
+                    p.style.setProperty('--ty', ty + 'px');
+                    p.style.animation = 'burstOut 0.7s cubic-bezier(0.22, 0.61, 0.36, 1) forwards';
+                    btn.appendChild(p);
+                    setTimeout(function(el) { if (el.parentNode) el.remove(); }, 750, p);
+                }
+            }
+
             function addMessage(role, content) {
-                const row = document.createElement('div'); row.className = `msg-row ${role}`;
+                const row = document.createElement('div'); row.className = 'msg-row ' + role;
                 const bubble = document.createElement('div'); bubble.className = 'msg-bubble';
-                bubble.innerHTML = renderMarkdown(content);
+                if (role === 'assistant' && agentMode) {
+                    const parsed = parseAgentOptions(content);
+                    if (parsed) {
+                        bubble.innerHTML = renderMarkdown(parsed.mainText);
+                        renderAgentOptionsInBubble(bubble, parsed.options, function(opt) {
+                            sendUserMessage(opt);
+                        });
+                    } else {
+                        bubble.innerHTML = renderMarkdown(content);
+                    }
+                } else {
+                    bubble.innerHTML = renderMarkdown(content);
+                }
                 row.appendChild(bubble); messagesEl.appendChild(row); scrollToBottom();
             }
 
@@ -1287,7 +1577,7 @@
                 row.className = 'msg-row assistant';
                 const bubble = document.createElement('div');
                 bubble.className = 'msg-bubble streaming';
-                bubble.innerHTML = '<span class="stream-content"></span><span class="typing-cursor"><img src="荧光棒.png" alt="" /></span>';
+                bubble.innerHTML = '<div class="stream-content"></div><span class="typing-cursor"><img src="荧光棒.png" alt="" /></span>';
                 row.appendChild(bubble);
                 messagesEl.appendChild(row);
                 scrollToBottom();
@@ -1372,6 +1662,13 @@
                             onComplete: () => {
                                 const finalText = accumulatedText;
                                 finishStreamingBubble(streamingState);
+                                const parsed = agentMode ? parseAgentOptions(finalText) : null;
+                                if (parsed) {
+                                    streamingState.contentEl.innerHTML = renderMarkdown(parsed.mainText);
+                                    renderAgentOptionsInBubble(streamingState.bubble, parsed.options, function(opt) {
+                                        sendUserMessage(opt);
+                                    });
+                                }
                                 conversationHistory.push({ role: 'assistant', content: finalText });
                                 setInteractionDisabled(false);
                                 userInputEl.focus();
@@ -1400,8 +1697,76 @@
                 });
             }
 
+            function updateAgentModeUI() {
+                if (agentMode) {
+                    quickPanelEl.style.display = 'none';
+                    if (agentModeBtnEl) agentModeBtnEl.classList.add('active');
+                } else {
+                    quickPanelEl.style.display = 'flex';
+                    if (agentModeBtnEl) agentModeBtnEl.classList.remove('active');
+                }
+            }
+
+            function resetAgentConversation() {
+                messagesEl.innerHTML = '';
+                conversationHistory = [
+                    { role: 'user', content: '你好，请先向我问好并简要介绍你能如何帮助我选演唱会，然后以一句疑问句结尾，再给出四个选项供我选择。' }
+                ];
+                setInteractionDisabled(true);
+                addTypingIndicator();
+                let streamingState = null;
+                let accumulatedText = '';
+                let isStreamDone = false;
+                let clearReveal = null;
+                const onFirstChunk = function() {
+                    if (!streamingState) {
+                        removeTypingIndicator();
+                        streamingState = createStreamingBubble();
+                        clearReveal = startTypedReveal(streamingState.contentEl, function() { return accumulatedText; }, {
+                            isDone: function() { return isStreamDone; },
+                            onComplete: function() {
+                                const finalText = accumulatedText;
+                                finishStreamingBubble(streamingState);
+                                const parsed = parseAgentOptions(finalText);
+                                if (parsed) {
+                                    streamingState.contentEl.innerHTML = renderMarkdown(parsed.mainText);
+                                    renderAgentOptionsInBubble(streamingState.bubble, parsed.options, function(opt) {
+                                        sendUserMessage(opt);
+                                    });
+                                }
+                                conversationHistory.push({ role: 'assistant', content: finalText });
+                                setInteractionDisabled(false);
+                                userInputEl.focus();
+                            }
+                        });
+                    }
+                };
+                requestAssistantReplyStream({
+                    onChunk: function(chunk) {
+                        onFirstChunk();
+                        accumulatedText += chunk;
+                    },
+                    onDone: function(fullText) {
+                        onFirstChunk();
+                        accumulatedText = (fullText || accumulatedText) || '';
+                        isStreamDone = true;
+                    },
+                    onError: function(e) {
+                        clearReveal && clearReveal();
+                        removeTypingIndicator();
+                        addMessage('assistant', '出错：' + e.message);
+                        setInteractionDisabled(false);
+                        userInputEl.focus();
+                    }
+                });
+            }
+
             function resetConversation() {
                 messagesEl.innerHTML = '';
+                if (agentMode) {
+                    resetAgentConversation();
+                    return;
+                }
                 conversationHistory = [
                     { role: 'user', content: '你好，请先向我问好并简要介绍你能如何帮助我选演唱会。' }
                 ];
@@ -1440,7 +1805,7 @@
                         clearReveal?.();
                         removeTypingIndicator();
                         conversationHistory = [];
-                        addMessage('assistant', '你好！我是你的天津演唱会向导。请告诉我你的年龄、音乐偏好、预算或演唱会经验，我来给你推荐～');
+                        addMessage('assistant', '你好！我是小星，你的天津演唱会向导。请告诉我你的年龄、音乐偏好、预算或演唱会经验，我来给你推荐～');
                         setInteractionDisabled(false);
                     }
                 });
@@ -1449,7 +1814,29 @@
             // 事件绑定
             composerEl.addEventListener('submit', (e) => { e.preventDefault(); sendUserMessage(userInputEl.value); userInputEl.value = ''; });
             quickPanelEl.addEventListener('click', (e) => { const btn = e.target.closest('.quick-btn'); if(btn && btn.dataset.quick) sendUserMessage(btn.dataset.quick); });
+            if (agentModeBtnEl) {
+                agentModeBtnEl.addEventListener('click', () => {
+                    agentMode = !agentMode;
+                    updateAgentModeUI();
+                    resetConversation();
+                });
+            }
             resetBtnEl.addEventListener('click', () => resetConversation());
+
+            // 头像点击：小星可爱地摇摇头
+            const avatarWrapEl = document.getElementById('avatarWrap');
+            if (avatarWrapEl) {
+                function triggerAvatarShake() {
+                    avatarWrapEl.classList.remove('avatar-shake');
+                    void avatarWrapEl.offsetWidth;
+                    avatarWrapEl.classList.add('avatar-shake');
+                }
+                avatarWrapEl.addEventListener('click', triggerAvatarShake);
+                avatarWrapEl.addEventListener('keydown', (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); triggerAvatarShake(); } });
+                avatarWrapEl.addEventListener('animationend', (e) => {
+                    if (e.target === avatarWrapEl.querySelector('img')) avatarWrapEl.classList.remove('avatar-shake');
+                });
+            }
 
             // 导航面板事件
             document.getElementById('searchDestBtn')?.addEventListener('click', searchDest);
