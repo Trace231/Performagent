@@ -1057,15 +1057,33 @@
                 try {
                     const q = adcode ? `adcode=${encodeURIComponent(adcode)}` : `city=${encodeURIComponent(city)}`;
                     const res = await fetch(API_BASE + `/api/amap-weather?${q}`);
-                    const data = await res.json();
+                    let data;
+                    try {
+                        data = await res.json();
+                    } catch (_) {
+                        currDesc.innerText = res.ok ? '天气数据解析失败' : (res.status === 502 ? '天气服务暂时不可用' : getApiErrorMessage(new Error('HTTP ' + res.status), '天气'));
+                        return;
+                    }
                     if (data.ok) {
                         if (data.live) renderLive(data.live);
                         if (data.forecasts && data.forecasts.length) renderForecast(data.forecasts);
                         return;
                     }
                     currDesc.innerText = data.error || '天气接口异常';
+                    if (!adcode && city) {
+                        try {
+                            const fallback = await fetch(API_BASE + '/api/amap-weather?adcode=120000');
+                            const fb = await fallback.json();
+                            if (fb.ok && fb.live) { renderLive(fb.live); if (fb.forecasts?.length) renderForecast(fb.forecasts); }
+                        } catch (_) {}
+                    }
                 } catch (e) {
                     currDesc.innerText = getApiErrorMessage(e, '天气');
+                    try {
+                        const fallback = await fetch(API_BASE + '/api/amap-weather?adcode=120000');
+                        const fb = await fallback.json();
+                        if (fb.ok && fb.live) { renderLive(fb.live); if (fb.forecasts?.length) renderForecast(fb.forecasts); }
+                    } catch (_) {}
                 }
                 if (AMapLib && AMapLib.Weather) {
                     try {
@@ -1081,12 +1099,20 @@
                 }
             }
 
-            // ---------- 代理 API 基址 (file:// 时需指定 localhost) ----------
-            const API_BASE = window.location.protocol === 'file:' ? 'http://localhost:3001' : '';
+            // ---------- 代理 API 基址 (file:// 或非 3001 端口时需指定 localhost 代理) ----------
+            const needProxy = window.location.protocol === 'file:' ||
+                (window.location.hostname === 'localhost' && window.location.port && window.location.port !== '3001');
+            const API_BASE = needProxy ? 'http://localhost:3001' : '';
             function getApiErrorMessage(e, type) {
                 const msg = e && e.message ? String(e.message) : '';
                 if (/Failed to fetch|NetworkError|Load failed/i.test(msg) || msg === '') {
+                    if (window.location.hostname === 'localhost' && window.location.port === '3001') {
+                        return (type ? type + '：' : '') + '请确保代理服务已启动：cd server && npm start';
+                    }
                     return '请通过 http://localhost:3001 打开页面并确保已执行 cd server && npm start 启动代理';
+                }
+                if (/404/i.test(msg)) {
+                    return (type ? type + '：' : '') + '接口不存在，请确认代理服务已启动（cd server && npm start）';
                 }
                 return (type ? type + '：' : '') + (msg || '请求失败');
             }
@@ -1195,16 +1221,18 @@
                 if (!el) return;
                 try {
                     const res = await fetch(API_BASE + `/api/regeo?location=${lng},${lat}`);
-                    const data = await res.json();
+                    let data;
+                    try { data = await res.json(); } catch (_) { data = { ok: false, error: '解析失败' }; }
                     if (data.ok && data.address) {
                         currentPosition = { lng, lat, address: data.address };
                         el.value = data.address;
                         const ac = data.addressComponent || {};
                         const cityVal = Array.isArray(ac.city) ? ac.city[0] : ac.city;
-                        const cityForWeather = (cityVal && String(cityVal).trim()) ? cityVal : (ac.province || '天津市');
+                        const cityForWeather = (cityVal && String(cityVal).trim()) ? cityVal : (ac.province || '天津');
                         const district = ac.district || '';
-                        const label = district ? `${(ac.province||'').replace(/[省市]/g,'')} · ${district}` : (cityForWeather || '天津');
-                        fetchAmapWeather(cityForWeather, label, ac.adcode || null);
+                        const provShort = (ac.province || '').replace(/[省市]/g, '').trim() || '天津';
+                        const label = district ? `${provShort} · ${district}` : cityForWeather;
+                        fetchAmapWeather(cityForWeather, label, ac.adcode || '120000');
                         return;
                     }
                     el.placeholder = data.error || '逆地理解析失败';
@@ -1239,23 +1267,39 @@
                 const tryAmapGeolocation = () => {
                     if (!AMapLib || !map) return Promise.reject(new Error('高德定位不可用'));
                     return new Promise((resolve, reject) => {
-                        AMapLib.plugin(['AMap.Geolocation'], () => {
-                            const geolocation = new AMapLib.Geolocation({
-                                enableHighAccuracy: true,
-                                timeout: 10000
-                            });
-                            geolocation.getCurrentPosition((status, result) => {
-                                if (status === 'complete' && result?.position) {
-                                    const p = result.position;
-                                    const lng = Number(typeof p.getLng === 'function' ? p.getLng() : p.lng);
-                                    const lat = Number(typeof p.getLat === 'function' ? p.getLat() : p.lat);
-                                    if (Number.isFinite(lng) && Number.isFinite(lat)) {
-                                        resolve({ lng, lat });
-                                        return;
+                        let settled = false;
+                        const timer = setTimeout(() => {
+                            if (!settled) { settled = true; reject(new Error('定位超时，请重试')); }
+                        }, 8000);
+                        AMapLib.plugin('AMap.Geolocation', () => {
+                            if (settled) return;
+                            try {
+                                const geolocation = new AMapLib.Geolocation({
+                                    enableHighAccuracy: true,
+                                    timeout: 10000
+                                });
+                                geolocation.getCurrentPosition((status, result) => {
+                                    if (settled) return;
+                                    if (status === 'complete' && result?.position) {
+                                        const p = result.position;
+                                        const lng = Number(typeof p.getLng === 'function' ? p.getLng() : p.lng);
+                                        const lat = Number(typeof p.getLat === 'function' ? p.getLat() : p.lat);
+                                        if (Number.isFinite(lng) && Number.isFinite(lat)) {
+                                            settled = true;
+                                            clearTimeout(timer);
+                                            resolve({ lng, lat });
+                                            return;
+                                        }
                                     }
-                                }
-                                reject(new Error('高德定位失败'));
-                            });
+                                    settled = true;
+                                    clearTimeout(timer);
+                                    reject(new Error('高德定位失败'));
+                                });
+                            } catch (e) {
+                                settled = true;
+                                clearTimeout(timer);
+                                reject(e instanceof Error ? e : new Error(String(e)));
+                            }
                         });
                     });
                 };
@@ -1289,6 +1333,24 @@
                 );
             }
 
+            /** 根据经纬度调用逆地理获取城市信息，然后更新天气卡片 */
+            async function updateWeatherByPoint(lng, lat) {
+                try {
+                    const res = await fetch(API_BASE + `/api/regeo?location=${lng},${lat}`);
+                    let data;
+                    try { data = await res.json(); } catch (_) { return; }
+                    if (data.ok && data.addressComponent) {
+                        const ac = data.addressComponent;
+                        const cityVal = Array.isArray(ac.city) ? ac.city[0] : ac.city;
+                        const cityForWeather = (cityVal && String(cityVal).trim()) ? cityVal : (ac.province || '天津');
+                        const district = ac.district || '';
+                        const provShort = (ac.province || '').replace(/[省市]/g, '').trim() || '天津';
+                        const label = district ? `${provShort} · ${district}` : cityForWeather;
+                        fetchAmapWeather(cityForWeather, label, ac.adcode || '120000');
+                    }
+                } catch (_) {}
+            }
+
             function searchDest() {
                 const keyword = document.getElementById('destInput').value.trim() || '天津奥林匹克中心';
                 if (!map || !placeSearch) return;
@@ -1316,6 +1378,7 @@
                                     if (!geo) return;
                                     setDestinationPoint(geo);
                                     fetchNearbyFood(destinationPoint);
+                                    updateWeatherByPoint(geo.lng, geo.lat);
                                 });
                                 return;
                             }
@@ -1325,11 +1388,13 @@
                                 name: first.name || keyword
                             });
                             fetchNearbyFood(destinationPoint);
+                            updateWeatherByPoint(point.lng, point.lat);
                         } else {
                             geocodeAddress(keyword).then((geo) => {
                                 if (!geo) return;
                                 setDestinationPoint(geo);
                                 fetchNearbyFood(destinationPoint);
+                                updateWeatherByPoint(geo.lng, geo.lat);
                             });
                         }
                     }
@@ -1481,7 +1546,7 @@
                         fetchNearbyFood(destinationPoint);
                     });
                     setTimeout(function() { map.resize(); }, 100);
-                    try { fetchAmapWeather('天津市', '天津 · 南开大学'); } catch (e) { console.warn('天气加载失败', e); }
+                    try { fetchAmapWeather('天津', '天津 · 南开大学', '120000'); } catch (e) { console.warn('天气加载失败', e); }
                 }).catch(e => {
                     console.error('高德地图加载失败', e);
                     document.getElementById('map').innerHTML = '<div style="color:#fff;padding:20px;">地图加载失败，请检查 AMAP_JS_KEY 与安全配置</div>';
